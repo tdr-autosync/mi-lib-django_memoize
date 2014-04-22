@@ -1,0 +1,7 @@
+*.py[co]
+.*.swp
+.tox
+docs/_build/*
+build/*
+dist/
+django_memoize.egg-info/*
