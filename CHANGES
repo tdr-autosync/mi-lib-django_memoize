@@ -1,6 +1,14 @@
 Changelog
 ---------
 
+Version 1.1.0
+`````````````
+
+- Port to Python >= 3.3 (requiring Python 2.6/2.7 for 2.x).
+- Fixed bug with using per-memoize timeouts greater than the default timeout
+- Added better support for per-instance memoization.
+- Various bug fixes
+
 Version 1.0.0
 `````````````
 

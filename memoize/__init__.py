@@ -1,19 +1,31 @@
 # -*- coding: utf-8 -*-
-__version__ = '1.0.0'
+__version__ = '1.1.0'
 __versionfull__ = __version__
 
 import base64
-import uuid
+import functools
 import hashlib
 import inspect
-import functools
-import warnings
 import logging
+import string
+import uuid
+import warnings
 
 from django.conf import settings
 from django.core.cache import cache as default_cache
+from django.core.cache.backends.base import DEFAULT_TIMEOUT
+
+from ._compat import PY2
 
 logger = logging.getLogger(__name__)
+
+# Used to remove control characters and whitespace from cache keys.
+valid_chars = set(string.ascii_letters + string.digits + '_.')
+delchars = ''.join(c for c in map(chr, range(256)) if c not in valid_chars)
+if PY2:
+    null_control = (None, delchars)
+else:
+    null_control = (dict((k,None) for k in delchars),)
 
 
 def function_namespace(f, args=None):
@@ -21,83 +33,161 @@ def function_namespace(f, args=None):
     Attempts to returns unique namespace for function
     """
     m_args = inspect.getargspec(f)[0]
+    instance_token = None
 
-    if len(m_args) and args:
-        if m_args[0] == 'self':
-            return '%s.%s.%s' % (f.__module__, args[0].__class__.__name__, f.__name__)
-        elif m_args[0] == 'cls':
-            return '%s.%s.%s' % (f.__module__, args[0].__name__, f.__name__)
+    instance_self = getattr(f, '__self__', None)
 
-    if hasattr(f, '__func__'):
-        return '%s.%s.%s' % (f.__module__, f.__self__.__class__.__name__, f.__name__)
-    elif hasattr(f, '__class__'):
-        return '%s.%s.%s' % (f.__module__, f.__class__.__name__, f.__name__)
+    if instance_self \
+    and not inspect.isclass(instance_self):
+        instance_token = repr(f.__self__)
+    elif m_args \
+    and m_args[0] == 'self' \
+    and args:
+        instance_token = repr(args[0])
+
+    module = f.__module__ or __name__
+
+    if hasattr(f, '__qualname__'):
+        name = f.__qualname__
     else:
-        return '%s.%s' % (f.__module__, f.__name__)
+        klass = getattr(f, '__self__', None)
+
+        if klass \
+        and not inspect.isclass(klass):
+            klass = klass.__class__
+
+        if not klass:
+            klass = getattr(f, 'im_class', None)
+
+        if not klass:
+            if m_args and args:
+                if m_args[0] == 'self':
+                    klass = args[0].__class__
+                elif m_args[0] == 'cls':
+                    klass = args[0]
+
+        if klass:
+            name = klass.__name__ + '.' + f.__name__
+        else:
+            name = f.__name__
+
+    ns = '.'.join((module, name))
+    ns = ns.translate(*null_control)
+
+    if instance_token:
+        ins = '.'.join((module, name, instance_token))
+        ins = ins.translate(*null_control)
+    else:
+        ins = None
+
+    return ns, ins
 
 
 class Memoizer(object):
     """
     This class is used to control the memoizer objects.
     """
-
     def __init__(self):
         self.cache = default_cache
         self.cache_prefix = 'memoize'
 
-    def get(self, *args, **kwargs):
+    def get(self, key):
         "Proxy function for internal cache object."
-        return self.cache.get(*args, **kwargs)
+        return self.cache.get(key=key)
 
-    def set(self, *args, **kwargs):
+    def set(self, key, value, timeout=DEFAULT_TIMEOUT):
         "Proxy function for internal cache object."
-        self.cache.set(*args, **kwargs)
+        self.cache.set(key=key, value=value, timeout=timeout)
 
-    def add(self, *args, **kwargs):
+    def add(self, key, value, timeout=DEFAULT_TIMEOUT):
         "Proxy function for internal cache object."
-        self.cache.add(*args, **kwargs)
+        self.cache.add(key=key, value=value, timeout=timeout)
 
-    def delete(self, *args, **kwargs):
+    def delete(self, key):
         "Proxy function for internal cache object."
-        self.cache.delete(*args, **kwargs)
+        self.cache.delete(key=key)
 
-    def delete_many(self, *args, **kwargs):
+    def delete_many(self, *keys):
         "Proxy function for internal cache object."
-        self.cache.delete_many(*args, **kwargs)
+        self.cache.delete_many(keys=keys)
 
     def clear(self):
         "Proxy function for internal cache object."
         self.cache.clear()
 
-    def get_many(self, *args, **kwargs):
+    def get_many(self, *keys):
         "Proxy function for internal cache object."
-        return self.cache.get_many(*args, **kwargs)
+        d = self.cache.get_many(keys=keys)
 
-    def set_many(self, *args, **kwargs):
+        values = []
+        for key in keys:
+            values.append(
+                d.get(key)
+            )
+
+        return values
+
+    def set_many(self, mapping, timeout=DEFAULT_TIMEOUT):
         "Proxy function for internal cache object."
-        self.cache.set_many(*args, **kwargs)
+        self.cache.set_many(data=mapping, timeout=timeout)
 
     def _memvname(self, funcname):
         return funcname + '_memver'
 
-    def memoize_make_version_hash(self):
+    def _memoize_make_version_hash(self):
         return base64.b64encode(uuid.uuid4().bytes)[:6].decode('utf-8')
 
-    def memoize_make_cache_key(self, make_name=None):
+    def _memoize_version(self, f, args=None,
+                         reset=False, delete=False, timeout=None):
+        """
+        Updates the hash version associated with a memoized function or method.
+        """
+        fname, instance_fname = function_namespace(f, args=args)
+        version_key = self._memvname(fname)
+        fetch_keys = [version_key]
+
+        if instance_fname:
+            instance_version_key = self._memvname(instance_fname)
+            fetch_keys.append(instance_version_key)
+
+        # Only delete the per-instance version key or per-function version
+        # key but not both.
+        if delete:
+            self.delete(fetch_keys[-1])
+            return fname, None
+
+        version_data_list = self.get_many(*fetch_keys)
+        dirty = False
+
+        if version_data_list[0] is None:
+            version_data_list[0] = self._memoize_make_version_hash()
+            dirty = True
+
+        if instance_fname and version_data_list[1] is None:
+            version_data_list[1] = self._memoize_make_version_hash()
+            dirty = True
+
+        # Only reset the per-instance version or the per-function version
+        # but not both.
+        if reset:
+            fetch_keys = fetch_keys[-1:]
+            version_data_list = [self._memoize_make_version_hash()]
+            dirty = True
+
+        if dirty:
+            self.set_many(dict(zip(fetch_keys, version_data_list)),
+                                timeout=timeout)
+
+        return fname, ''.join(version_data_list)
+
+    def _memoize_make_cache_key(self, make_name=None, timeout=None):
         """
         Function used to create the cache_key for memoized functions.
         """
         def make_cache_key(f, *args, **kwargs):
-            fname = function_namespace(f, args)
-
-            version_key = self._memvname(fname)
-            version_data = self.cache.get(version_key)
-
-            if version_data is None:
-                version_data = self.memoize_make_version_hash()
-                self.cache.set(version_key, version_data)
-
-            cache_key = hashlib.md5()
+            _timeout = getattr(timeout, 'cache_timeout', timeout)
+            fname, version_data = self._memoize_version(f, args=args,
+                                                        timeout=_timeout)
 
             #: this should have to be after version_data, so that it
             #: does not break the delete_memoized functionality.
@@ -107,7 +197,7 @@ class Memoizer(object):
                 altfname = fname
 
             if callable(f):
-                keyargs, keykwargs = self.memoize_kwargs_to_args(f,
+                keyargs, keykwargs = self._memoize_kwargs_to_args(f,
                                                                  *args,
                                                                  **kwargs)
             else:
@@ -118,6 +208,7 @@ class Memoizer(object):
             except AttributeError:
                 updated = "%s%s%s" % (altfname, keyargs, keykwargs)
 
+            cache_key = hashlib.md5()
             cache_key.update(updated.encode('utf-8'))
             cache_key = base64.b64encode(cache_key.digest())[:16]
             cache_key = cache_key.decode('utf-8')
@@ -129,7 +220,7 @@ class Memoizer(object):
             return cache_key
         return make_cache_key
 
-    def memoize_kwargs_to_args(self, f, *args, **kwargs):
+    def _memoize_kwargs_to_args(self, f, *args, **kwargs):
         #: Inspect the arguments to the function
         #: This allows the memoization to be the same
         #: whether the function was called with
@@ -246,7 +337,7 @@ class Memoizer(object):
 
                 try:
                     cache_key = decorated_function.make_cache_key(f, *args, **kwargs)
-                    rv = self.cache.get(cache_key)
+                    rv = self.get(cache_key)
                 except Exception:
                     if settings.DEBUG:
                         raise
@@ -256,18 +347,18 @@ class Memoizer(object):
                 if rv is None:
                     rv = f(*args, **kwargs)
                     try:
-                        self.cache.set(cache_key, rv,
+                        self.set(cache_key, rv,
                                    timeout=decorated_function.cache_timeout)
                     except Exception:
                         if settings.DEBUG:
                             raise
                         logger.exception("Exception possibly due to cache backend.")
-                        return f(*args, **kwargs)
                 return rv
 
             decorated_function.uncached = f
             decorated_function.cache_timeout = timeout
-            decorated_function.make_cache_key = self.memoize_make_cache_key(make_name)
+            decorated_function.make_cache_key = self._memoize_make_cache_key(
+                                                make_name, decorated_function)
             decorated_function.delete_memoized = lambda: self.delete_memoized(f)
 
             return decorated_function
@@ -281,7 +372,7 @@ class Memoizer(object):
 
         Example::
 
-            @memoize(timeout=50)
+            @memoize(50)
             def random_func():
                 return random.randrange(1, 50)
 
@@ -310,6 +401,40 @@ class Memoizer(object):
             >>> param_func(2, 2)
             47
 
+        Delete memoized is also smart about instance methods vs class methods.
+
+        When passing a instancemethod, it will only clear the cache related
+        to that instance of that object. (object uniqueness can be overridden
+        by defining the __repr__ method, such as user id).
+
+        When passing a classmethod, it will clear all caches related across
+        all instances of that class.
+
+        Example::
+
+            class Adder(object):
+                @memoize()
+                def add(self, b):
+                    return b + random.random()
+
+        .. code-block:: pycon
+
+            >>> adder1 = Adder()
+            >>> adder2 = Adder()
+            >>> adder1.add(3)
+            3.23214234
+            >>> adder2.add(3)
+            3.60898509
+            >>> delete_memoized(adder.add)
+            >>> adder1.add(3)
+            3.01348673
+            >>> adder2.add(3)
+            3.60898509
+            >>> delete_memoized(Adder.add)
+            >>> adder1.add(3)
+            3.53235667
+            >>> adder2.add(3)
+            3.72341788
 
         :param fname: Name of the memoized function, or a reference to the function.
         :param \*args: A list of positional parameters used with memoized function.
@@ -322,7 +447,7 @@ class Memoizer(object):
             instead of the function name, django-memoize will be able to place
             the args/kwargs in the proper order, and delete the positional cache.
 
-            However, if ``delete_memozied`` is just called with the name of the
+            However, if ``delete_memoized`` is just called with the name of the
             function, be sure to pass in potential arguments in the same order
             as defined in your function as args only, otherwise django-memoize
             will not be able to compute the same cache key.
@@ -344,16 +469,13 @@ class Memoizer(object):
             raise DeprecationWarning("Deleting messages by relative name is no longer"
                           " reliable, please switch to a function reference")
 
-        _fname = function_namespace(f, args)
 
         try:
             if not args and not kwargs:
-                version_key = self._memvname(_fname)
-                version_data = self.memoize_make_version_hash()
-                self.cache.set(version_key, version_data)
+                self._memoize_version(f, reset=True)
             else:
                 cache_key = f.make_cache_key(f.uncached, *args, **kwargs)
-                self.cache.delete(cache_key)
+                self.delete(cache_key)
         except Exception:
             if settings.DEBUG:
                 raise
@@ -375,11 +497,8 @@ class Memoizer(object):
             raise DeprecationWarning("Deleting messages by relative name is no longer"
                           " reliable, please use a function reference")
 
-        _fname = function_namespace(f, args)
-
         try:
-            version_key = self._memvname(_fname)
-            self.cache.delete(version_key)
+            self._memoize_version(f, delete=True)
         except Exception:
             if settings.DEBUG:
                 raise

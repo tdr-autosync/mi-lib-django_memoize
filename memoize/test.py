@@ -56,6 +56,17 @@ class MemoizeTestCase(TestCase):
 
         assert big_foo(5, 3) != result2
 
+    def test_06a_memoize(self):
+        @self.memoizer.memoize(50)
+        def big_foo(a, b):
+            return a+b+random.randrange(0, 100000)
+
+        result = big_foo(5, 2)
+
+        time.sleep(2)
+
+        assert big_foo(5, 2) == result
+
     def test_07_delete_memoize(self):
         @self.memoizer.memoize(5)
         def big_foo(a, b):
@@ -93,7 +104,7 @@ class MemoizeTestCase(TestCase):
 
         self.memoizer.delete_memoized_verhash(big_foo)
 
-        _fname = function_namespace(big_foo)
+        _fname, _fname_instance = function_namespace(big_foo)
         version_key = self.memoizer._memvname(_fname)
         assert self.memoizer.get(version_key) is None
 
@@ -228,6 +239,65 @@ class MemoizeTestCase(TestCase):
         assert adder1.add(4) != x
         assert adder1.add(3) != adder2.add(3)
 
+    def test_10d_classfunc_memoize_delete(self):
+        class Adder(object):
+            def __init__(self, initial):
+                self.initial = initial
+
+            @self.memoizer.memoize()
+            def add(self, b):
+                return self.initial + b + random.random()
+
+        adder1 = Adder(1)
+        adder2 = Adder(2)
+
+        a1 = adder1.add(3)
+        a2 = adder2.add(3)
+
+        assert a1 != a2
+        assert adder1.add(3) == a1
+        assert adder2.add(3) == a2
+
+        self.memoizer.delete_memoized(adder1.add)
+
+        a3 = adder1.add(3)
+        a4 = adder2.add(3)
+
+        self.assertNotEqual(a1, a3)
+        assert a1 != a3
+        self.assertEqual(a2, a4)
+
+        self.memoizer.delete_memoized(Adder.add)
+
+        a5 = adder1.add(3)
+        a6 = adder2.add(3)
+
+        self.assertNotEqual(a5, a6)
+        self.assertNotEqual(a3, a5)
+        self.assertNotEqual(a4, a6)
+
+    def test_10e_delete_memoize_classmethod(self):
+        class Mock(object):
+            @classmethod
+            @self.memoizer.memoize(5)
+            def big_foo(cls, a, b):
+                return a+b+random.randrange(0, 100000)
+
+        result = Mock.big_foo(5, 2)
+        result2 = Mock.big_foo(5, 3)
+
+        time.sleep(1)
+
+        assert Mock.big_foo(5, 2) == result
+        assert Mock.big_foo(5, 2) == result
+        assert Mock.big_foo(5, 3) != result
+        assert Mock.big_foo(5, 3) == result2
+
+        self.memoizer.delete_memoized(Mock.big_foo)
+
+        assert Mock.big_foo(5, 2) != result
+        assert Mock.big_foo(5, 3) != result2
+
     def test_14_memoized_multiple_arg_kwarg_calls(self):
         @self.memoizer.memoize()
         def big_foo(a, b,c=[1,1],d=[1,1]):
@@ -275,13 +345,13 @@ class MemoizeTestCase(TestCase):
 
         expected = (1,2,'foo','bar')
 
-        args, kwargs = self.memoizer.memoize_kwargs_to_args(big_foo, 1,2,'foo','bar')
+        args, kwargs = self.memoizer._memoize_kwargs_to_args(big_foo, 1,2,'foo','bar')
         assert (args == expected)
-        args, kwargs = self.memoizer.memoize_kwargs_to_args(big_foo, 2,'foo','bar',a=1)
+        args, kwargs = self.memoizer._memoize_kwargs_to_args(big_foo, 2,'foo','bar',a=1)
         assert (args == expected)
-        args, kwargs = self.memoizer.memoize_kwargs_to_args(big_foo, a=1,b=2,c='foo',d='bar')
+        args, kwargs = self.memoizer._memoize_kwargs_to_args(big_foo, a=1,b=2,c='foo',d='bar')
         assert (args == expected)
-        args, kwargs = self.memoizer.memoize_kwargs_to_args(big_foo, d='bar',b=2,a=1,c='foo')
+        args, kwargs = self.memoizer._memoize_kwargs_to_args(big_foo, d='bar',b=2,a=1,c='foo')
         assert (args == expected)
-        args, kwargs = self.memoizer.memoize_kwargs_to_args(big_foo, 1,2,d='bar',c='foo')
+        args, kwargs = self.memoizer._memoize_kwargs_to_args(big_foo, 1,2,d='bar',c='foo')
         assert (args == expected)
