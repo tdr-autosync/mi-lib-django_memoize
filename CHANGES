@@ -1,6 +1,11 @@
 Changelog
 ---------
 
+Version 1.1.1
+`````````````
+
+- Default timeout set to Django's cache timeout
+
 Version 1.1.0
 `````````````
 

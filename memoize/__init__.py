@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = '1.1.0'
+__version__ = '1.1.1'
 __versionfull__ = __version__
 
 import base64
@@ -138,7 +138,7 @@ class Memoizer(object):
         return base64.b64encode(uuid.uuid4().bytes)[:6].decode('utf-8')
 
     def _memoize_version(self, f, args=None,
-                         reset=False, delete=False, timeout=None):
+                         reset=False, delete=False, timeout=DEFAULT_TIMEOUT):
         """
         Updates the hash version associated with a memoized function or method.
         """
@@ -180,7 +180,7 @@ class Memoizer(object):
 
         return fname, ''.join(version_data_list)
 
-    def _memoize_make_cache_key(self, make_name=None, timeout=None):
+    def _memoize_make_cache_key(self, make_name=None, timeout=DEFAULT_TIMEOUT):
         """
         Function used to create the cache_key for memoized functions.
         """
@@ -273,7 +273,7 @@ class Memoizer(object):
 
         return tuple(new_args), {}
 
-    def memoize(self, timeout=None, make_name=None, unless=None):
+    def memoize(self, timeout=DEFAULT_TIMEOUT, make_name=None, unless=None):
         """
         Use this to cache the result of a function, taking its arguments into
         account in the cache key.
