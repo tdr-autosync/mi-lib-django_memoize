@@ -16,7 +16,7 @@ from django.core.cache import cache as default_cache
 try:
     from django.core.cache.backends.base import DEFAULT_TIMEOUT
 except ImportError:  # Django < 1.6 compatibility
-    DEFAULT_TIMEOUT = None
+    DEFAULT_TIMEOUT = 300
 
 from ._compat import PY2
 
@@ -316,8 +316,8 @@ class Memoizer(object):
                     readable and writable
 
 
-        :param timeout: Default None. If set to an integer, will cache for that
-                        amount of time. Unit of time is in seconds.
+        :param timeout: Default: 300. If set to an integer, will cache
+                        for that amount of time. Unit of time is in seconds.
         :param make_name: Default None. If set this is a function that accepts
                           a single argument, the function name, and returns a
                           new string to be used as the function name. If not set
