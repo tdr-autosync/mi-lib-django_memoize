@@ -12,7 +12,11 @@ import uuid
 
 from django.conf import settings
 from django.core.cache import cache as default_cache
-from django.core.cache.backends.base import DEFAULT_TIMEOUT
+
+try:
+    from django.core.cache.backends.base import DEFAULT_TIMEOUT
+except ImportError:  # Django < 1.6 compatibility
+    DEFAULT_TIMEOUT = None
 
 from ._compat import PY2
 
