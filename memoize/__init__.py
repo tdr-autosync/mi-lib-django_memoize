@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = '1.1.1'
+__version__ = '1.1.2'
 __versionfull__ = __version__
 
 import base64
@@ -9,7 +9,6 @@ import inspect
 import logging
 import string
 import uuid
-import warnings
 
 from django.conf import settings
 from django.core.cache import cache as default_cache
@@ -25,7 +24,7 @@ delchars = ''.join(c for c in map(chr, range(256)) if c not in valid_chars)
 if PY2:
     null_control = (None, delchars)
 else:
-    null_control = (dict((k,None) for k in delchars),)
+    null_control = (dict((k, None) for k in delchars),)
 
 
 def function_namespace(f, args=None):
@@ -37,12 +36,9 @@ def function_namespace(f, args=None):
 
     instance_self = getattr(f, '__self__', None)
 
-    if instance_self \
-    and not inspect.isclass(instance_self):
+    if instance_self and not inspect.isclass(instance_self):
         instance_token = repr(f.__self__)
-    elif m_args \
-    and m_args[0] == 'self' \
-    and args:
+    elif m_args and m_args[0] == 'self' and args:
         instance_token = repr(args[0])
 
     module = f.__module__ or __name__
@@ -52,8 +48,7 @@ def function_namespace(f, args=None):
     else:
         klass = getattr(f, '__self__', None)
 
-        if klass \
-        and not inspect.isclass(klass):
+        if klass and not inspect.isclass(klass):
             klass = klass.__class__
 
         if not klass:
@@ -175,8 +170,9 @@ class Memoizer(object):
             dirty = True
 
         if dirty:
-            self.set_many(dict(zip(fetch_keys, version_data_list)),
-                                timeout=timeout)
+            self.set_many(
+                dict(zip(fetch_keys, version_data_list)), timeout=timeout
+            )
 
         return fname, ''.join(version_data_list)
 
@@ -243,8 +239,8 @@ class Memoizer(object):
             elif arg_num < len(args):
                 arg = args[arg_num]
                 arg_num += 1
-            elif abs(i-args_len) <= len(argspec.defaults):
-                arg = argspec.defaults[i-args_len]
+            elif abs(i - args_len) <= len(argspec.defaults):
+                arg = argspec.defaults[i - args_len]
                 arg_num += 1
             else:
                 arg = None
@@ -347,8 +343,7 @@ class Memoizer(object):
                 if rv is None:
                     rv = f(*args, **kwargs)
                     try:
-                        self.set(cache_key, rv,
-                                   timeout=decorated_function.cache_timeout)
+                        self.set(cache_key, rv, timeout=decorated_function.cache_timeout)
                     except Exception:
                         if settings.DEBUG:
                             raise
@@ -358,7 +353,8 @@ class Memoizer(object):
             decorated_function.uncached = f
             decorated_function.cache_timeout = timeout
             decorated_function.make_cache_key = self._memoize_make_cache_key(
-                                                make_name, decorated_function)
+                make_name, decorated_function
+            )
             decorated_function.delete_memoized = lambda: self.delete_memoized(f)
 
             return decorated_function
@@ -469,7 +465,6 @@ class Memoizer(object):
             raise DeprecationWarning("Deleting messages by relative name is no longer"
                           " reliable, please switch to a function reference")
 
-
         try:
             if not args and not kwargs:
                 self._memoize_version(f, reset=True)
@@ -508,6 +503,7 @@ class Memoizer(object):
 # Memoizer instance
 _memoizer = Memoizer()
 
+# Public objects
 memoize = _memoizer.memoize
 delete_memoized = _memoizer.delete_memoized
 delete_memoized_verhash = _memoizer.delete_memoized_verhash
