@@ -1,6 +1,12 @@
 Changelog
 ---------
 
+Version 1.1.2
+`````````````
+
+- Memoizer now accepts cache_prefix and cache parameter
+- Support for Django >= 1.4
+
 Version 1.1.1
 `````````````
 
