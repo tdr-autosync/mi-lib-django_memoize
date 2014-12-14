@@ -23,7 +23,7 @@ setup(
     packages=find_packages(),
     zip_safe=False,
     install_requires=[
-        'django'
+        'django >= 1.4'
     ],
     classifiers=[
         'Environment :: Web Environment',
