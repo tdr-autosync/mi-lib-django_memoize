@@ -14,4 +14,4 @@ install:
   - pip install -q $DJANGO
 
 # command to run tests
-script: python setup.py test --quiet
+script: python setup.py test
