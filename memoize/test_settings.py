@@ -8,4 +8,5 @@ INSTALLED_APPS = (
     'memoize',
 )
 
+SECRET_KEY = "123@#@FFE202"
 
