@@ -3,8 +3,8 @@ django-memoize
 
 .. image:: https://travis-ci.org/tvavrys/django-memoize.svg?branch=master
     :target: https://travis-ci.org/tvavrys/django-memoize
-.. image:: https://pypip.in/d/django-memoize/badge.svg
-    :target: https://pypi.python.org/pypi/django-memoize
+.. image:: https://badge.fury.io/py/django-memoize.svg
+    :target: http://badge.fury.io/py/django-memoize
 |
 **django-memoize** is an implementation
 of `memoization <http://en.wikipedia.org/wiki/Memoization>`_ technique
