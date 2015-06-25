@@ -1,6 +1,12 @@
 Changelog
 ---------
 
+Version 1.2.0
+`````````````
+
+- Fixed a serious issue where memoize function ignored special `f(arg, **kwargs)` input use-case. See test `test_10ab_arg_kwarg_memoize` for more details.
+- Added new Django==1.8 Travis env test
+
 Version 1.1.2
 `````````````
 
