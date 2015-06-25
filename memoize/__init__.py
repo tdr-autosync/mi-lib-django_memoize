@@ -239,7 +239,7 @@ class Memoizer(object):
                 arg = repr(args[0])
                 arg_num += 1
             elif argspec.args[i] in kwargs:
-                arg = kwargs[argspec.args[i]]
+                arg = kwargs.pop(argspec.args[i])
             elif arg_num < len(args):
                 arg = args[arg_num]
                 arg_num += 1
@@ -271,7 +271,7 @@ class Memoizer(object):
 
             new_args.append(arg)
 
-        return tuple(new_args), {}
+        return tuple(new_args), kwargs
 
     def memoize(self, timeout=DEFAULT_TIMEOUT, make_name=None, unless=None):
         """

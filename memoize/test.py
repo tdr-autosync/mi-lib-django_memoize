@@ -197,6 +197,25 @@ class MemoizeTestCase(TestCase):
         with self.assertRaises(TypeError):
             f(1)
 
+    def test_10ab_arg_kwarg_memoize(self):
+        @self.memoizer.memoize()
+        def f(a, **kwargs):
+            return (a, kwargs, random.randrange(0, 100000000))
+
+        f1 = f(1, b=2)
+        assert f1 == f(1, b=2)
+        assert f1 != f(1, b=4)
+
+        f2 = f(5, c=6)
+        assert f2 == f(5, c=6)
+        assert f2 != f(7, c=6)
+
+        self.memoizer.delete_memoized(f, 1, b=2)
+        assert f1 != f(1, b=2)
+
+        assert f2 == f(5, c=6)
+        assert f2 != f(7, c=6)
+
     def test_10b_classarg_memoize(self):
         @self.memoizer.memoize()
         def bar(a):
