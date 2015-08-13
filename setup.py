@@ -9,35 +9,33 @@ for Django. You can think of it as a cache for function or method results.
 
 """
 
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name='django-memoize',
     version='1.2.0',
+    packages=['memoize'],
+    include_package_data=True,
+    license='BSD License',
+    description='An implementation of memoization technique for Django.',
     url='https://github.com/tvavrys/django-memoize',
-    license='BSD',
     author='Thomas Vavrys',
     author_email='tvavrys@sleio.com',
-    description='An implementation of memoization technique for Django.',
     long_description=__doc__,
-    packages=find_packages(),
-    zip_safe=False,
     install_requires=[
         'django >= 1.4'
     ],
     classifiers=[
         'Environment :: Web Environment',
+        'Framework :: Django',
+        'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Framework :: Django',
-        'Intended Audience :: Developers',
+        # 'Programming Language :: Python :: 3',
+        # 'Programming Language :: Python :: 3.2',
+        # 'Programming Language :: Python :: 3.3',
+        'Topic :: Internet :: WWW/HTTP',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
-        'Topic :: Software Development :: Libraries :: Python Modules'
     ],
-    test_suite='setuptest.setuptest.SetupTestSuite',
-    tests_require=(
-        'django-setuptest',
-        'argparse',  # Required by django-setuptools on Python 2.6
-    ),
 )

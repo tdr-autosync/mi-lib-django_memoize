@@ -1,15 +1,15 @@
-import sys
-import os
-import time
-import random
-import string
+# -*- coding: utf-8 -*-
+# vi:si:et:sw=4:sts=4:ts=4
 
-from django.test import TestCase
+import random
+import time
+
+from django.test import SimpleTestCase
 
 from memoize import Memoizer, function_namespace
 
 
-class MemoizeTestCase(TestCase):
+class MemoizeTestCase(SimpleTestCase):
     def setUp(self):
         self.memoizer = Memoizer()
 

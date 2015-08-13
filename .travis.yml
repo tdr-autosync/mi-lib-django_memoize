@@ -22,4 +22,4 @@ install:
   - pip install -q $DJANGO
 
 # command to run tests
-script: python setup.py test
+script: python runtests.py
