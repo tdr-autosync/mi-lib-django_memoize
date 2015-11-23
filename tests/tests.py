@@ -193,6 +193,7 @@ class MemoizeTestCase(SimpleTestCase):
         assert f(1,2) == f(1,2,c=1)
         assert f(1,2) == f(1,2,1)
         assert f(1,2) == f(1,2)
+        assert f(1,2) != f(2,1)
         assert f(1,2,3) != f(1,2)
         with self.assertRaises(TypeError):
             f(1)
@@ -216,30 +217,63 @@ class MemoizeTestCase(SimpleTestCase):
         assert f2 == f(5, c=6)
         assert f2 != f(7, c=6)
 
+    def test_10ac_arg_kwarg_memoize(self):
+        @self.memoizer.memoize()
+        def f(a, *args, **kwargs):
+            return (a, args, kwargs, random.randrange(0, 100000000))
+
+        f1 = f(1, 2, b=3)
+        assert f1 == f(1, 2, b=3)
+        assert f1 != f(1, 3, b=3)
+
+        f2 = f(5, 6, c=7)
+        assert f2 == f(5, 6, c=7)
+        assert f2 != f(7, 6, c=7)
+
+        self.memoizer.delete_memoized(f, 1, 2, b=3)
+        assert f1 != f(1, 2, b=3)
+
+        assert f2 == f(5, 6, c=7)
+        assert f2 != f(7, 6, c=7)
+
     def test_10b_classarg_memoize(self):
         @self.memoizer.memoize()
-        def bar(a):
-            return a.value + random.random()
+        def bar(a, *args):
+            return a.value + random.random() + sum(args)
 
         class Adder(object):
-            def __init__(self, value):
-                self.value = value
+            def __init__(self, value, *args):
+                self.value = (value + sum(args))
 
         adder = Adder(15)
         adder2 = Adder(20)
+        adder3 = Adder(16, 5)
+        adder4 = Adder(21, 6)
 
-        y = bar(adder)
-        z = bar(adder2)
+        w = bar(adder)
+        x = bar(adder2)
+        y = bar(adder3)
+        z = bar(adder4)
 
+        assert w != x
         assert y != z
-        assert bar(adder) == y
-        assert bar(adder) != z
+        assert bar(adder) == w
+        assert bar(adder) != x
+        assert bar(adder3) == y
+        assert bar(adder3) != z
+
         adder.value = 14
-        assert bar(adder) == y
-        assert bar(adder) != z
+        adder3.value = 15
+
+        assert bar(adder) == w
+        assert bar(adder) != x
+        assert bar(adder3) == y
+        assert bar(adder3) != z
 
         assert bar(adder) != bar(adder2)
-        assert bar(adder2) == z
+        assert bar(adder3) != bar(adder4)
+        assert bar(adder2) == x
+        assert bar(adder4) == z
 
     def test_10c_classfunc_memoize(self):
         class Adder(object):
