@@ -35,7 +35,13 @@ def function_namespace(f, args=None):
     """
     Attempts to returns unique namespace for function
     """
-    m_args = inspect.getargspec(f)[0]
+    try:
+        m_args = inspect.getargspec(f)[0]
+    except ValueError:
+        # this can happen in python 3.5 when
+        # function has keyword-only arguments or annotations
+        m_args = inspect.getfullargspec(f)[0]
+
     instance_token = None
 
     instance_self = getattr(f, '__self__', None)
