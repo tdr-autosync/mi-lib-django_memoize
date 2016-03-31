@@ -197,9 +197,9 @@ class Memoizer(object):
                 altfname = fname
 
             if callable(f):
-                keyargs, keykwargs = self._memoize_kwargs_to_args(f,
-                                                                 *args,
-                                                                 **kwargs)
+                keyargs, keykwargs = self._memoize_kwargs_to_args(
+                    f, *args, **kwargs
+                )
             else:
                 keyargs, keykwargs = args, kwargs
 
@@ -310,8 +310,9 @@ class Memoizer(object):
                     The original undecorated function. readable only
 
                 **cache_timeout**
-                    The cache timeout value for this function. For a custom value
-                    to take affect, this must be set before the function is called.
+                    The cache timeout value for this function. For a custom
+                    value to take affect, this must be set before the function
+                    is called.
 
                     readable and writable
 
@@ -325,8 +326,8 @@ class Memoizer(object):
                         for that amount of time. Unit of time is in seconds.
         :param make_name: Default None. If set this is a function that accepts
                           a single argument, the function name, and returns a
-                          new string to be used as the function name. If not set
-                          then the function name is used.
+                          new string to be used as the function name.
+                          If not set then the function name is used.
         :param unless: Default None. Cache will *always* execute the caching
                        facilities unelss this callable is true.
                        This will bypass the caching entirely.
@@ -341,22 +342,31 @@ class Memoizer(object):
                     return f(*args, **kwargs)
 
                 try:
-                    cache_key = decorated_function.make_cache_key(f, *args, **kwargs)
+                    cache_key = decorated_function.make_cache_key(
+                        f, *args, **kwargs
+                    )
                     rv = self.get(cache_key)
                 except Exception:
                     if settings.DEBUG:
                         raise
-                    logger.exception("Exception possibly due to cache backend.")
+                    logger.exception(
+                        "Exception possibly due to cache backend."
+                    )
                     return f(*args, **kwargs)
 
                 if rv is None:
                     rv = f(*args, **kwargs)
                     try:
-                        self.set(cache_key, rv, timeout=decorated_function.cache_timeout)
+                        self.set(
+                            cache_key, rv,
+                            timeout=decorated_function.cache_timeout
+                        )
                     except Exception:
                         if settings.DEBUG:
                             raise
-                        logger.exception("Exception possibly due to cache backend.")
+                        logger.exception(
+                            "Exception possibly due to cache backend."
+                        )
                 return rv
 
             decorated_function.uncached = f
@@ -364,7 +374,9 @@ class Memoizer(object):
             decorated_function.make_cache_key = self._memoize_make_cache_key(
                 make_name, decorated_function
             )
-            decorated_function.delete_memoized = lambda: self.delete_memoized(f)
+            decorated_function.delete_memoized = (
+                lambda: self.delete_memoized(f)
+            )
 
             return decorated_function
         return memoize
@@ -372,8 +384,9 @@ class Memoizer(object):
     def delete_memoized(self, f, *args, **kwargs):
         """
         Deletes the specified functions caches, based by given parameters.
-        If parameters are given, only the functions that were memoized with them
-        will be erased. Otherwise all versions of the caches will be forgotten.
+        If parameters are given, only the functions that were memoized with
+        them will be erased. Otherwise all versions of the caches will be
+        forgotten.
 
         Example::
 
@@ -441,16 +454,20 @@ class Memoizer(object):
             >>> adder2.add(3)
             3.72341788
 
-        :param fname: Name of the memoized function, or a reference to the function.
-        :param \*args: A list of positional parameters used with memoized function.
-        :param \**kwargs: A dict of named parameters used with memoized function.
+        :param fname: Name of the memoized function, or a reference to the
+                      function.
+        :param \*args: A list of positional parameters used with memoized
+                       function.
+        :param \**kwargs: A dict of named parameters used with memoized
+                          function.
 
         .. note::
 
-            django-memoize uses inspect to order kwargs into positional args when
-            the function is memoized. If you pass a function reference into ``fname``
-            instead of the function name, django-memoize will be able to place
-            the args/kwargs in the proper order, and delete the positional cache.
+            django-memoize uses inspect to order kwargs into positional args
+            when the function is memoized. If you pass a function reference
+            into ``fname`` instead of the function name, django-memoize will
+            be able to place the args/kwargs in the proper order, and delete
+            the positional cache.
 
             However, if ``delete_memoized`` is just called with the name of the
             function, be sure to pass in potential arguments in the same order
@@ -459,20 +476,24 @@ class Memoizer(object):
 
         .. note::
 
-            django-memoize maintains an internal random version hash for the function.
-            Using delete_memoized will only swap out the version hash, causing
-            the memoize function to recompute results and put them into another key.
+            django-memoize maintains an internal random version hash for the
+            function. Using delete_memoized will only swap out the version
+            hash, causing the memoize function to recompute results and put
+            them into another key.
 
-            This leaves any computed caches for this memoized function within the
-            caching backend.
+            This leaves any computed caches for this memoized function within
+            the caching backend.
 
             It is recommended to use a very high timeout with memoize if using
-            this function, so that when the version has is swapped, the old cached
-            results would eventually be reclaimed by the caching backend.
+            this function, so that when the version has is swapped, the old
+            cached results would eventually be reclaimed by the caching
+            backend.
         """
         if not callable(f):
-            raise DeprecationWarning("Deleting messages by relative name is no longer"
-                          " reliable, please switch to a function reference")
+            raise DeprecationWarning(
+                "Deleting messages by relative name is no longer"
+                " reliable, please switch to a function reference"
+            )
 
         try:
             if not args and not kwargs:
@@ -498,8 +519,10 @@ class Memoizer(object):
             in the cache backend.
         """
         if not callable(f):
-            raise DeprecationWarning("Deleting messages by relative name is no longer"
-                          " reliable, please use a function reference")
+            raise DeprecationWarning(
+                "Deleting messages by relative name is no longer"
+                " reliable, please use a function reference"
+            )
 
         try:
             self._memoize_version(f, delete=True)

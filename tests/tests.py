@@ -128,8 +128,8 @@ class MemoizeTestCase(SimpleTestCase):
         assert big_foo(5, 1) == result_a
         assert big_foo(5, 2) != result_b
 
-        ## Cleanup bigfoo 5,1 5,2 or it might conflict with
-        ## following run if it also uses memecache
+        # Cleanup bigfoo 5,1 5,2 or it might conflict with
+        # following run if it also uses memecache
         self.memoizer.delete_memoized(big_foo, 5, 2)
         self.memoizer.delete_memoized(big_foo, 5, 1)
 
@@ -138,37 +138,37 @@ class MemoizeTestCase(SimpleTestCase):
         def big_foo(a, b):
             return sum(a)+sum(b)+random.randrange(0, 100000)
 
-        result_a = big_foo([5,3,2], [1])
-        result_b = big_foo([3,3], [3,1])
+        result_a = big_foo([5, 3, 2], [1])
+        result_b = big_foo([3, 3], [3, 1])
 
-        assert big_foo([5,3,2], [1]) == result_a
-        assert big_foo([3,3], [3,1]) == result_b
+        assert big_foo([5, 3, 2], [1]) == result_a
+        assert big_foo([3, 3], [3, 1]) == result_b
 
-        self.memoizer.delete_memoized(big_foo, [5,3,2], [1])
+        self.memoizer.delete_memoized(big_foo, [5, 3, 2], [1])
 
-        assert big_foo([5,3,2], [1]) != result_a
-        assert big_foo([3,3], [3,1]) == result_b
+        assert big_foo([5, 3, 2], [1]) != result_a
+        assert big_foo([3, 3], [3, 1]) == result_b
 
-        ## Cleanup bigfoo 5,1 5,2 or it might conflict with
-        ## following run if it also uses memecache
-        self.memoizer.delete_memoized(big_foo, [5,3,2], [1])
-        self.memoizer.delete_memoized(big_foo, [3,3], [1])
+        # Cleanup bigfoo 5,1 5,2 or it might conflict with
+        # following run if it also uses memecache
+        self.memoizer.delete_memoized(big_foo, [5, 3, 2], [1])
+        self.memoizer.delete_memoized(big_foo, [3, 3], [1])
 
     def test_10_kwargs_memoize(self):
         @self.memoizer.memoize()
         def big_foo(a, b=None):
             return a+sum(b.values())+random.randrange(0, 100000)
 
-        result_a = big_foo(1, dict(one=1,two=2))
-        result_b = big_foo(5, dict(three=3,four=4))
+        result_a = big_foo(1, dict(one=1, two=2))
+        result_b = big_foo(5, dict(three=3, four=4))
 
-        assert big_foo(1, dict(one=1,two=2)) == result_a
-        assert big_foo(5, dict(three=3,four=4)) == result_b
+        assert big_foo(1, dict(one=1, two=2)) == result_a
+        assert big_foo(5, dict(three=3, four=4)) == result_b
 
-        self.memoizer.delete_memoized(big_foo, 1, dict(one=1,two=2))
+        self.memoizer.delete_memoized(big_foo, 1, dict(one=1, two=2))
 
-        assert big_foo(1, dict(one=1,two=2)) != result_a
-        assert big_foo(5, dict(three=3,four=4)) == result_b
+        assert big_foo(1, dict(one=1, two=2)) != result_a
+        assert big_foo(5, dict(three=3, four=4)) == result_b
 
     def test_10a_kwargonly_memoize(self):
         @self.memoizer.memoize()
@@ -190,11 +190,11 @@ class MemoizeTestCase(SimpleTestCase):
         def f(a, b, c=1):
             return a+b+c+random.randrange(0, 100000)
 
-        assert f(1,2) == f(1,2,c=1)
-        assert f(1,2) == f(1,2,1)
-        assert f(1,2) == f(1,2)
-        assert f(1,2) != f(2,1)
-        assert f(1,2,3) != f(1,2)
+        assert f(1, 2) == f(1, 2, c=1)
+        assert f(1, 2) == f(1, 2, 1)
+        assert f(1, 2) == f(1, 2)
+        assert f(1, 2) != f(2, 1)
+        assert f(1, 2, 3) != f(1, 2)
         with self.assertRaises(TypeError):
             f(1)
 
@@ -393,58 +393,71 @@ class MemoizeTestCase(SimpleTestCase):
 
     def test_14_memoized_multiple_arg_kwarg_calls(self):
         @self.memoizer.memoize()
-        def big_foo(a, b,c=[1,1],d=[1,1]):
+        def big_foo(a, b, c=[1, 1], d=[1, 1]):
             return sum(a)+sum(b)+sum(c)+sum(d)+random.randrange(0, 100000)
 
-        result_a = big_foo([5,3,2], [1], c=[3,3], d=[3,3])
+        result_a = big_foo([5, 3, 2], [1], c=[3, 3], d=[3, 3])
 
-        assert big_foo([5,3,2], [1], d=[3,3], c=[3,3]) == result_a
-        assert big_foo(b=[1],a=[5,3,2],c=[3,3],d=[3,3]) == result_a
-        assert big_foo([5,3,2], [1], [3,3], [3,3]) == result_a
+        assert big_foo([5, 3, 2], [1], d=[3, 3], c=[3, 3]) == result_a
+        assert big_foo(b=[1], a=[5, 3, 2], c=[3, 3], d=[3, 3]) == result_a
+        assert big_foo([5, 3, 2], [1], [3, 3], [3, 3]) == result_a
 
     def test_15_memoize_multiple_arg_kwarg_delete(self):
         @self.memoizer.memoize()
-        def big_foo(a, b,c=[1,1],d=[1,1]):
+        def big_foo(a, b, c=[1, 1], d=[1, 1]):
             return sum(a)+sum(b)+sum(c)+sum(d)+random.randrange(0, 100000)
 
-        result_a = big_foo([5,3,2], [1], c=[3,3], d=[3,3])
-        self.memoizer.delete_memoized(big_foo, [5,3,2],[1],[3,3],[3,3])
-        result_b = big_foo([5,3,2], [1], c=[3,3], d=[3,3])
+        result_a = big_foo([5, 3, 2], [1], c=[3, 3], d=[3, 3])
+        self.memoizer.delete_memoized(big_foo, [5, 3, 2], [1], [3, 3], [3, 3])
+        result_b = big_foo([5, 3, 2], [1], c=[3, 3], d=[3, 3])
         assert result_a != result_b
 
-        self.memoizer.delete_memoized(big_foo, [5,3,2],b=[1],c=[3,3],d=[3,3])
-        result_b = big_foo([5,3,2], [1], c=[3,3], d=[3,3])
+        self.memoizer.delete_memoized(
+            big_foo, [5, 3, 2], b=[1], c=[3, 3], d=[3, 3]
+        )
+        result_b = big_foo([5, 3, 2], [1], c=[3, 3], d=[3, 3])
         assert result_a != result_b
 
-        self.memoizer.delete_memoized(big_foo, [5,3,2],[1],c=[3,3],d=[3,3])
-        result_a = big_foo([5,3,2], [1], c=[3,3], d=[3,3])
+        self.memoizer.delete_memoized(
+            big_foo, [5, 3, 2], [1], c=[3, 3], d=[3, 3]
+        )
+        result_a = big_foo([5, 3, 2], [1], c=[3, 3], d=[3, 3])
         assert result_a != result_b
 
-        self.memoizer.delete_memoized(big_foo, [5,3,2],b=[1],c=[3,3],d=[3,3])
-        result_a = big_foo([5,3,2], [1], c=[3,3], d=[3,3])
+        self.memoizer.delete_memoized(
+            big_foo, [5, 3, 2], b=[1], c=[3, 3], d=[3, 3]
+        )
+        result_a = big_foo([5, 3, 2], [1], c=[3, 3], d=[3, 3])
         assert result_a != result_b
 
-        self.memoizer.delete_memoized(big_foo, [5,3,2],[1],c=[3,3],d=[3,3])
-        result_b = big_foo([5,3,2], [1], c=[3,3], d=[3,3])
+        self.memoizer.delete_memoized(
+            big_foo, [5, 3, 2], [1], c=[3, 3], d=[3, 3]
+        )
+        result_b = big_foo([5, 3, 2], [1], c=[3, 3], d=[3, 3])
         assert result_a != result_b
 
-        self.memoizer.delete_memoized(big_foo, [5,3,2],[1],[3,3],[3,3])
-        result_a = big_foo([5,3,2], [1], c=[3,3], d=[3,3])
+        self.memoizer.delete_memoized(big_foo, [5, 3, 2], [1], [3, 3], [3, 3])
+        result_a = big_foo([5, 3, 2], [1], c=[3, 3], d=[3, 3])
         assert result_a != result_b
 
     def test_16_memoize_kwargs_to_args(self):
         def big_foo(a, b, c=None, d=None):
             return sum(a)+sum(b)+random.randrange(0, 100000)
 
-        expected = (1,2,'foo','bar')
+        expected = (1, 2, 'foo', 'bar')
 
-        args, kwargs = self.memoizer._memoize_kwargs_to_args(big_foo, 1,2,'foo','bar')
+        args, kwargs = self.memoizer._memoize_kwargs_to_args(
+            big_foo, 1, 2, 'foo', 'bar')
         assert (args == expected)
-        args, kwargs = self.memoizer._memoize_kwargs_to_args(big_foo, 2,'foo','bar',a=1)
+        args, kwargs = self.memoizer._memoize_kwargs_to_args(
+            big_foo, 2, 'foo', 'bar', a=1)
         assert (args == expected)
-        args, kwargs = self.memoizer._memoize_kwargs_to_args(big_foo, a=1,b=2,c='foo',d='bar')
+        args, kwargs = self.memoizer._memoize_kwargs_to_args(
+            big_foo, a=1, b=2, c='foo', d='bar')
         assert (args == expected)
-        args, kwargs = self.memoizer._memoize_kwargs_to_args(big_foo, d='bar',b=2,a=1,c='foo')
+        args, kwargs = self.memoizer._memoize_kwargs_to_args(
+            big_foo, d='bar', b=2, a=1, c='foo')
         assert (args == expected)
-        args, kwargs = self.memoizer._memoize_kwargs_to_args(big_foo, 1,2,d='bar',c='foo')
+        args, kwargs = self.memoizer._memoize_kwargs_to_args(
+            big_foo, 1, 2, d='bar', c='foo')
         assert (args == expected)
