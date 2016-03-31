@@ -271,6 +271,11 @@ class Memoizer(object):
 
             new_args.append(arg)
 
+        # If there are any missing varargs then
+        # just append them since consistency of the key trumps order.
+        if argspec.varargs and args_len < len(args):
+            new_args.extend(args[args_len:])
+
         return tuple(new_args), kwargs
 
     def memoize(self, timeout=DEFAULT_TIMEOUT, make_name=None, unless=None):

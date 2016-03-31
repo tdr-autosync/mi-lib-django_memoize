@@ -193,6 +193,7 @@ class MemoizeTestCase(SimpleTestCase):
         assert f(1,2) == f(1,2,c=1)
         assert f(1,2) == f(1,2,1)
         assert f(1,2) == f(1,2)
+        assert f(1,2) != f(2,1)
         assert f(1,2,3) != f(1,2)
         with self.assertRaises(TypeError):
             f(1)
@@ -216,30 +217,63 @@ class MemoizeTestCase(SimpleTestCase):
         assert f2 == f(5, c=6)
         assert f2 != f(7, c=6)
 
+    def test_10ac_arg_kwarg_memoize(self):
+        @self.memoizer.memoize()
+        def f(a, *args, **kwargs):
+            return (a, args, kwargs, random.randrange(0, 100000000))
+
+        f1 = f(1, 2, b=3)
+        assert f1 == f(1, 2, b=3)
+        assert f1 != f(1, 3, b=3)
+
+        f2 = f(5, 6, c=7)
+        assert f2 == f(5, 6, c=7)
+        assert f2 != f(7, 6, c=7)
+
+        self.memoizer.delete_memoized(f, 1, 2, b=3)
+        assert f1 != f(1, 2, b=3)
+
+        assert f2 == f(5, 6, c=7)
+        assert f2 != f(7, 6, c=7)
+
     def test_10b_classarg_memoize(self):
         @self.memoizer.memoize()
-        def bar(a):
-            return a.value + random.random()
+        def bar(a, *args):
+            return a.value + random.random() + sum(args)
 
         class Adder(object):
-            def __init__(self, value):
-                self.value = value
+            def __init__(self, value, *args):
+                self.value = (value + sum(args))
 
         adder = Adder(15)
         adder2 = Adder(20)
+        adder3 = Adder(16, 5)
+        adder4 = Adder(21, 6)
 
-        y = bar(adder)
-        z = bar(adder2)
+        w = bar(adder)
+        x = bar(adder2)
+        y = bar(adder3)
+        z = bar(adder4)
 
+        assert w != x
         assert y != z
-        assert bar(adder) == y
-        assert bar(adder) != z
+        assert bar(adder) == w
+        assert bar(adder) != x
+        assert bar(adder3) == y
+        assert bar(adder3) != z
+
         adder.value = 14
-        assert bar(adder) == y
-        assert bar(adder) != z
+        adder3.value = 15
+
+        assert bar(adder) == w
+        assert bar(adder) != x
+        assert bar(adder3) == y
+        assert bar(adder3) != z
 
         assert bar(adder) != bar(adder2)
-        assert bar(adder2) == z
+        assert bar(adder3) != bar(adder4)
+        assert bar(adder2) == x
+        assert bar(adder4) == z
 
     def test_10c_classfunc_memoize(self):
         class Adder(object):
@@ -247,15 +281,18 @@ class MemoizeTestCase(SimpleTestCase):
                 self.initial = initial
 
             @self.memoizer.memoize()
-            def add(self, b):
-                return self.initial + b
+            def add(self, b, *args):
+                return self.initial + b + sum(args)
 
         adder1 = Adder(1)
         adder2 = Adder(2)
 
         x = adder1.add(3)
+        y = adder1.add(3, 4)
         assert adder1.add(3) == x
         assert adder1.add(4) != x
+        assert adder1.add(3, 4) == y
+        assert adder1.add(4, 4) != y
         assert adder1.add(3) != adder2.add(3)
 
     def test_10d_classfunc_memoize_delete(self):
@@ -264,46 +301,65 @@ class MemoizeTestCase(SimpleTestCase):
                 self.initial = initial
 
             @self.memoizer.memoize()
-            def add(self, b):
-                return self.initial + b + random.random()
+            def add(self, b, *args):
+                return self.initial + b + sum(args) + random.random()
 
         adder1 = Adder(1)
         adder2 = Adder(2)
 
         a1 = adder1.add(3)
         a2 = adder2.add(3)
+        b1 = adder1.add(3, 1)
+        b2 = adder2.add(3, 1)
 
         assert a1 != a2
+        assert a1 != b1
+        assert a2 != b2
+
         assert adder1.add(3) == a1
         assert adder2.add(3) == a2
+        assert adder1.add(3, 1) == b1
+        assert adder2.add(3, 1) == b2
 
         self.memoizer.delete_memoized(adder1.add)
 
         a3 = adder1.add(3)
         a4 = adder2.add(3)
+        b3 = adder1.add(3, 1)
+        b4 = adder2.add(3, 1)
 
         self.assertNotEqual(a1, a3)
+        self.assertNotEqual(b1, b3)
         assert a1 != a3
+        assert b1 != b3
         self.assertEqual(a2, a4)
+        self.assertEqual(b2, b4)
 
         self.memoizer.delete_memoized(Adder.add)
 
         a5 = adder1.add(3)
         a6 = adder2.add(3)
+        b5 = adder1.add(3, 1)
+        b6 = adder2.add(3, 1)
 
         self.assertNotEqual(a5, a6)
+        self.assertNotEqual(b5, b6)
         self.assertNotEqual(a3, a5)
+        self.assertNotEqual(b3, b5)
         self.assertNotEqual(a4, a6)
+        self.assertNotEqual(b4, b6)
 
     def test_10e_delete_memoize_classmethod(self):
         class Mock(object):
             @classmethod
             @self.memoizer.memoize(5)
-            def big_foo(cls, a, b):
-                return a+b+random.randrange(0, 100000)
+            def big_foo(cls, a, b, *args):
+                return a+b+sum(args)+random.randrange(0, 100000)
 
         result = Mock.big_foo(5, 2)
         result2 = Mock.big_foo(5, 3)
+        result3 = Mock.big_foo(5, 2, 1)
+        result4 = Mock.big_foo(5, 3, 1)
 
         time.sleep(1)
 
@@ -311,11 +367,17 @@ class MemoizeTestCase(SimpleTestCase):
         assert Mock.big_foo(5, 2) == result
         assert Mock.big_foo(5, 3) != result
         assert Mock.big_foo(5, 3) == result2
+        assert Mock.big_foo(5, 2, 1) == result3
+        assert Mock.big_foo(5, 2, 1) == result3
+        assert Mock.big_foo(5, 3, 1) != result3
+        assert Mock.big_foo(5, 3, 1) == result4
 
         self.memoizer.delete_memoized(Mock.big_foo)
 
         assert Mock.big_foo(5, 2) != result
         assert Mock.big_foo(5, 3) != result2
+        assert Mock.big_foo(5, 2, 1) != result3
+        assert Mock.big_foo(5, 3, 1) != result4
 
     def test_14_memoized_multiple_arg_kwarg_calls(self):
         @self.memoizer.memoize()
