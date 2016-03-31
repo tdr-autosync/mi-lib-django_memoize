@@ -15,22 +15,16 @@ matrix:
       python: 2.6
     - env: TOXENV=django16-py27
       python: 2.7
-    - env: TOXENV=django16-py32
-      python: 3.2
     - env: TOXENV=django16-py33
       python: 3.3
     - env: TOXENV=django17-py27
       python: 2.7
-    - env: TOXENV=django17-py32
-      python: 3.2
     - env: TOXENV=django17-py33
       python: 3.3
     - env: TOXENV=django17-py34
       python: 3.4
     - env: TOXENV=django18-py27
       python: 2.7
-    - env: TOXENV=django18-py32
-      python: 3.2
     - env: TOXENV=django18-py33
       python: 3.3
     - env: TOXENV=django18-py34
