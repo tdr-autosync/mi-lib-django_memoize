@@ -236,6 +236,18 @@ class MemoizeTestCase(SimpleTestCase):
         assert f2 == f(5, 6, c=7)
         assert f2 != f(7, 6, c=7)
 
+        @self.memoizer.memoize()
+        def f(a, b=1, *args, **kwargs):
+            return (a, b, args, kwargs, random.randrange(0, 100000000))
+
+        f3 = f(1, 3, 4)
+        assert f3 == f(1, 3, 4)
+        assert f3 == f(*(1, 3, 4))
+        assert f3 != f(1, 3)
+
+        self.memoizer.delete_memoized(f, 1, 3, 4)
+        assert f3 != f(1, 3, 4)
+
     def test_10b_classarg_memoize(self):
         @self.memoizer.memoize()
         def bar(a, *args):
