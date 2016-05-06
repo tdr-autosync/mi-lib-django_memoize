@@ -92,7 +92,7 @@ class Memoizer(object):
 
     def get(self, key):
         "Proxy function for internal cache object."
-        return self.cache.get(key=key)
+        return self.cache.get(key=key, default='memoize:no_key')
 
     def set(self, key, value, timeout=DEFAULT_TIMEOUT):
         "Proxy function for internal cache object."
@@ -354,7 +354,7 @@ class Memoizer(object):
                     )
                     return f(*args, **kwargs)
 
-                if rv is None:
+                if rv == 'memoize:no_key':
                     rv = f(*args, **kwargs)
                     try:
                         self.set(
