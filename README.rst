@@ -21,4 +21,4 @@ Documentation is available at http://pythonhosted.org/django-memoize/.
 Requirements
 ------------
 
-Django >= 1.4 is required.
+Django >= 1.7 is required.

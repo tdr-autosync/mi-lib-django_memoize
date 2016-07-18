@@ -1,34 +1,19 @@
 # -*- coding: utf-8 -*-
-__version__ = '1.3.1'
+__version__ = '2.0.0'
 __versionfull__ = __version__
 
-import base64
 import functools
 import hashlib
 import inspect
 import logging
-import string
 import uuid
 
 from django.conf import settings
 from django.core.cache import cache as default_cache
-
-try:
-    from django.core.cache.backends.base import DEFAULT_TIMEOUT
-except ImportError:  # Django < 1.6 compatibility
-    DEFAULT_TIMEOUT = 300
-
-from ._compat import PY2
+from django.core.cache.backends.base import DEFAULT_TIMEOUT
+from django.utils.encoding import force_bytes
 
 logger = logging.getLogger(__name__)
-
-# Used to remove control characters and whitespace from cache keys.
-valid_chars = set(string.ascii_letters + string.digits + '_.')
-delchars = ''.join(c for c in map(chr, range(256)) if c not in valid_chars)
-if PY2:
-    null_control = (None, delchars)
-else:
-    null_control = (dict((k, None) for k in delchars),)
 
 
 def function_namespace(f, args=None):
@@ -71,11 +56,9 @@ def function_namespace(f, args=None):
             name = f.__name__
 
     ns = '.'.join((module, name))
-    ns = ns.translate(*null_control)
 
     if instance_token:
         ins = '.'.join((module, name, instance_token))
-        ins = ins.translate(*null_control)
     else:
         ins = None
 
@@ -134,7 +117,7 @@ class Memoizer(object):
         return funcname + '_memver'
 
     def _memoize_make_version_hash(self):
-        return base64.b64encode(uuid.uuid4().bytes)[:6].decode('utf-8')
+        return uuid.uuid4().hex
 
     def _memoize_version(self, f, args=None,
                          reset=False, delete=False, timeout=DEFAULT_TIMEOUT):
@@ -203,15 +186,9 @@ class Memoizer(object):
             else:
                 keyargs, keykwargs = args, kwargs
 
-            try:
-                updated = "{0}{1}{2}".format(altfname, keyargs, keykwargs)
-            except AttributeError:
-                updated = "%s%s%s" % (altfname, keyargs, keykwargs)
-
-            cache_key = hashlib.md5()
-            cache_key.update(updated.encode('utf-8'))
-            cache_key = base64.b64encode(cache_key.digest())[:16]
-            cache_key = cache_key.decode('utf-8')
+            cache_key = hashlib.md5(
+                force_bytes((altfname, keyargs, keykwargs))
+            ).hexdigest()
             cache_key += version_data
 
             if self.cache_prefix:

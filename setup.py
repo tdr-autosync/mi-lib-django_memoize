@@ -13,7 +13,7 @@ from setuptools import setup
 
 setup(
     name='django-memoize',
-    version='1.3.1',
+    version='2.0.0',
     packages=['memoize'],
     include_package_data=True,
     license='BSD License',
@@ -23,7 +23,7 @@ setup(
     author_email='tvavrys@sleio.com',
     long_description=__doc__,
     install_requires=[
-        'django >= 1.4'
+        'django >= 1.7'
     ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
@@ -39,9 +39,6 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Framework :: Django',
-        'Framework :: Django :: 1.4',
-        'Framework :: Django :: 1.5',
-        'Framework :: Django :: 1.6',
         'Framework :: Django :: 1.7',
         'Framework :: Django :: 1.8',
         'Framework :: Django :: 1.9',
