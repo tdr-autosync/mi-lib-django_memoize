@@ -32,7 +32,7 @@ class MemoizeTestCase(SimpleTestCase):
 
         self.memoizer.delete('hi')
 
-        assert self.memoizer.get('hi') is None
+        assert self.memoizer.get('hi') == 'memoize:no_key'
 
     def test_06_memoize(self):
         @self.memoizer.memoize(5)
@@ -106,7 +106,7 @@ class MemoizeTestCase(SimpleTestCase):
 
         _fname, _fname_instance = function_namespace(big_foo)
         version_key = self.memoizer._memvname(_fname)
-        assert self.memoizer.get(version_key) is None
+        assert self.memoizer.get(version_key) == 'memoize:no_key'
 
         assert big_foo(5, 2) != result
         assert big_foo(5, 3) != result2
