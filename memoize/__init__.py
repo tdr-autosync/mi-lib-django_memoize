@@ -7,6 +7,7 @@ import hashlib
 import inspect
 import logging
 import uuid
+import time
 
 from django.conf import settings
 from django.core.cache import cache as default_cache
@@ -14,6 +15,20 @@ from django.core.cache.backends.base import DEFAULT_TIMEOUT
 from django.utils.encoding import force_bytes
 
 logger = logging.getLogger(__name__)
+
+
+# From: http://preshing.com/20110924/timing-your-code-using-pythons-with-statement/
+class _TimeCounter(object):
+    def __init__(self, measurer=None):
+        self.measurer = measurer or time.time
+
+    def __enter__(self):
+        self.start = self.measurer()
+        return self
+
+    def __exit__(self, *args):
+        self.end = self.measurer()
+        self.interval = self.end - self.start
 
 
 def function_namespace(f, args=None):
