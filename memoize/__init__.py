@@ -270,7 +270,7 @@ class Memoizer(object):
 
         return tuple(new_args), kwargs
 
-    def memoize(self, timeout=DEFAULT_TIMEOUT, make_name=None, unless=None):
+    def memoize(self, timeout=DEFAULT_TIMEOUT, make_name=None, unless=None, timeout_function=None):
         """
         Use this to cache the result of a function, taking its arguments into
         account in the cache key.
@@ -347,11 +347,21 @@ class Memoizer(object):
                     return f(*args, **kwargs)
 
                 if rv is None:
-                    rv = f(*args, **kwargs)
+                    if decorated_function.cache_timeout_function:
+                        with _TimeCounter() as timecounter:
+                            rv = f(*args, **kwargs)
+                    else:
+                        rv = f(*args, **kwargs)
+
                     try:
+                        if decorated_function.cache_timeout_function:
+                            final_timeout = decorated_function.cache_timeout_function(timecounter.interval)
+                        else:
+                            final_timeout = decorated_function.cache_timeout
+
                         self.set(
                             cache_key, rv,
-                            timeout=decorated_function.cache_timeout
+                            timeout=final_timeout
                         )
                     except Exception:
                         if settings.DEBUG:
@@ -363,6 +373,7 @@ class Memoizer(object):
 
             decorated_function.uncached = f
             decorated_function.cache_timeout = timeout
+            decorated_function.cache_timeout_function = timeout_function
             decorated_function.make_cache_key = self._memoize_make_cache_key(
                 make_name, decorated_function
             )
