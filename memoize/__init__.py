@@ -359,6 +359,7 @@ class Memoizer(object):
                         else:
                             final_timeout = decorated_function.cache_timeout
 
+                        logger.debug('Timeout set to: %.2f sec' % final_timeout)
                         self.set(
                             cache_key, rv,
                             timeout=final_timeout
