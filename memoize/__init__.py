@@ -7,6 +7,7 @@ import hashlib
 import inspect
 import logging
 import uuid
+import time
 
 from django.conf import settings
 from django.core.cache import cache as default_cache
@@ -14,6 +15,20 @@ from django.core.cache.backends.base import DEFAULT_TIMEOUT
 from django.utils.encoding import force_bytes
 
 logger = logging.getLogger(__name__)
+
+
+# From: http://preshing.com/20110924/timing-your-code-using-pythons-with-statement/
+class _TimeCounter(object):
+    def __init__(self, measurer=None):
+        self.measurer = measurer or time.time
+
+    def __enter__(self):
+        self.start = self.measurer()
+        return self
+
+    def __exit__(self, *args):
+        self.end = self.measurer()
+        self.interval = self.end - self.start
 
 
 def function_namespace(f, args=None):
@@ -255,7 +270,7 @@ class Memoizer(object):
 
         return tuple(new_args), kwargs
 
-    def memoize(self, timeout=DEFAULT_TIMEOUT, make_name=None, unless=None):
+    def memoize(self, timeout=DEFAULT_TIMEOUT, make_name=None, unless=None, timeout_function=None):
         """
         Use this to cache the result of a function, taking its arguments into
         account in the cache key.
@@ -332,11 +347,22 @@ class Memoizer(object):
                     return f(*args, **kwargs)
 
                 if rv is None:
-                    rv = f(*args, **kwargs)
+                    if decorated_function.cache_timeout_function:
+                        with _TimeCounter() as timecounter:
+                            rv = f(*args, **kwargs)
+                    else:
+                        rv = f(*args, **kwargs)
+
                     try:
+                        if decorated_function.cache_timeout_function:
+                            final_timeout = decorated_function.cache_timeout_function(timecounter.interval)
+                        else:
+                            final_timeout = decorated_function.cache_timeout
+
+                        logger.debug('Timeout set to: %.2f sec' % final_timeout)
                         self.set(
                             cache_key, rv,
-                            timeout=decorated_function.cache_timeout
+                            timeout=final_timeout
                         )
                     except Exception:
                         if settings.DEBUG:
@@ -348,6 +374,7 @@ class Memoizer(object):
 
             decorated_function.uncached = f
             decorated_function.cache_timeout = timeout
+            decorated_function.cache_timeout_function = timeout_function
             decorated_function.make_cache_key = self._memoize_make_cache_key(
                 make_name, decorated_function
             )
