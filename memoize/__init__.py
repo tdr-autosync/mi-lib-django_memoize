@@ -220,7 +220,7 @@ class Memoizer(object):
             elif arg_num < len(args):
                 arg = args[arg_num]
                 arg_num += 1
-            elif abs(i - args_len) <= len(argspec.defaults):
+            elif argspec.defaults and abs(i - args_len) <= len(argspec.defaults):
                 arg = argspec.defaults[i - args_len]
                 arg_num += 1
             else:
