@@ -13,7 +13,7 @@ from setuptools import setup
 
 setup(
     name='django-memoize',
-    version='2.0.0',
+    version='2.1.0',
     packages=['memoize'],
     include_package_data=True,
     license='BSD License',
@@ -42,6 +42,7 @@ setup(
         'Framework :: Django :: 1.7',
         'Framework :: Django :: 1.8',
         'Framework :: Django :: 1.9',
+        'Framework :: Django :: 1.10',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     ],
 )
