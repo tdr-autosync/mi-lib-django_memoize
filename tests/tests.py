@@ -485,3 +485,39 @@ class MemoizeTestCase(SimpleTestCase):
         cache_key = foo.make_cache_key(foo.uncached)
         assert (
             self.memoizer.get(cache_key) is self.memoizer.default_cache_value)
+
+    def test_17_delete_memoized_instancemethod_with_mutable_param(self):
+        class Foo(object):
+            def __init__(self, id):
+                self.id = id
+
+            @self.memoizer.memoize(5)
+            def foo(self, bar_obj):
+                return random.randrange(0, 100000) + bar_obj.id
+
+            def __repr__(self):
+                return ('{}({})'.format(self.__class__.__name__, self.id))
+
+        class Bar(object):
+            def __init__(self, id):
+                self.id = id
+
+            def __repr__(self):
+                return ('{}({})'.format(self.__class__.__name__, self.id))
+
+        a = Foo(1)
+        b = Bar(1)
+        c = Bar(2)
+
+        result1 = a.foo(b)
+        result2 = a.foo(c)
+
+        time.sleep(1)
+
+        assert(a.foo(b) == result1)
+        assert(a.foo(c) == result2)
+
+        self.memoizer.delete_memoized(a.foo, a, b)
+
+        assert(a.foo(b) != result1)
+        assert(a.foo(c) == result2)
