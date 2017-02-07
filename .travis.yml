@@ -23,6 +23,12 @@ matrix:
       python: 3.4
     - env: TOXENV=django19-py35
       python: 3.5
+    - env: TOXENV=django110-py27
+      python: 2.7
+    - env: TOXENV=django110-py34
+      python: 3.4
+    - env: TOXENV=django110-py35
+      python: 3.5
 
 install:
   - pip install coveralls tox
