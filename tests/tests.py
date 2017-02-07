@@ -32,7 +32,7 @@ class MemoizeTestCase(SimpleTestCase):
 
         self.memoizer.delete('hi')
 
-        assert self.memoizer.get('hi') is None
+        assert self.memoizer.get('hi') is self.memoizer.default_cache_value
 
     def test_06_memoize(self):
         @self.memoizer.memoize(5)
@@ -106,12 +106,17 @@ class MemoizeTestCase(SimpleTestCase):
 
         _fname, _fname_instance = function_namespace(big_foo)
         version_key = self.memoizer._memvname(_fname)
-        assert self.memoizer.get(version_key) is None
+        assert (
+            self.memoizer.get(version_key) is self.memoizer.default_cache_value
+        )
 
         assert big_foo(5, 2) != result
         assert big_foo(5, 3) != result2
 
-        assert self.memoizer.get(version_key) is not None
+        assert (
+            self.memoizer.get(version_key) is not
+            self.memoizer.default_cache_value
+        )
 
     def test_08_delete_memoize(self):
         @self.memoizer.memoize()
@@ -463,19 +468,20 @@ class MemoizeTestCase(SimpleTestCase):
         assert (args == expected)
 
     def test_17_memoize_none_value(self):
-        from memoize import DefaultCacheObject
-        self.memoizer = Memoizer(memoize_none_values=True)
+        self.memoizer = Memoizer()
 
         @self.memoizer.memoize()
         def foo():
             return None
 
         cache_key = foo.make_cache_key(foo.uncached)
-        assert isinstance(self.memoizer.get(cache_key), DefaultCacheObject)
+        assert (
+            self.memoizer.get(cache_key) is self.memoizer.default_cache_value)
         result = foo()
         assert result is None
         assert self.memoizer.get(cache_key) is None
 
         self.memoizer.delete_memoized(foo)
         cache_key = foo.make_cache_key(foo.uncached)
-        assert isinstance(self.memoizer.get(cache_key), DefaultCacheObject)
+        assert (
+            self.memoizer.get(cache_key) is self.memoizer.default_cache_value)

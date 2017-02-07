@@ -76,12 +76,11 @@ class Memoizer(object):
     """
     This class is used to control the memoizer objects.
     """
-    def __init__(self, cache=default_cache, cache_prefix='memoize', memoize_none_values=False):
+    def __init__(self, cache=default_cache, cache_prefix='memoize',
+                 default_cache_value=DEFAULT_CACHE_OBJECT):
         self.cache = cache
         self.cache_prefix = cache_prefix
-        self.default_cache_value = None
-        if memoize_none_values:
-            self.default_cache_value = DEFAULT_CACHE_OBJECT
+        self.default_cache_value = default_cache_value
 
     def get(self, key):
         "Proxy function for internal cache object."
