@@ -16,6 +16,13 @@ from django.utils.encoding import force_bytes
 logger = logging.getLogger(__name__)
 
 
+class DefaultCacheObject(object):
+    pass
+
+
+DEFAULT_CACHE_OBJECT = DefaultCacheObject()
+
+
 def function_namespace(f, args=None):
     """
     Attempts to returns unique namespace for function
@@ -69,13 +76,16 @@ class Memoizer(object):
     """
     This class is used to control the memoizer objects.
     """
-    def __init__(self, cache=default_cache, cache_prefix='memoize'):
+    def __init__(self, cache=default_cache, cache_prefix='memoize', memoize_none_values=False):
         self.cache = cache
         self.cache_prefix = cache_prefix
+        self.default_cache_value = None
+        if memoize_none_values:
+            self.default_cache_value = DEFAULT_CACHE_OBJECT
 
     def get(self, key):
         "Proxy function for internal cache object."
-        return self.cache.get(key=key)
+        return self.cache.get(key=key, default=self.default_cache_value)
 
     def set(self, key, value, timeout=DEFAULT_TIMEOUT):
         "Proxy function for internal cache object."
@@ -331,7 +341,7 @@ class Memoizer(object):
                     )
                     return f(*args, **kwargs)
 
-                if rv is None:
+                if rv == self.default_cache_value:
                     rv = f(*args, **kwargs)
                     try:
                         self.set(

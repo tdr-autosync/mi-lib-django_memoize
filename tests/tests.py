@@ -461,3 +461,21 @@ class MemoizeTestCase(SimpleTestCase):
         args, kwargs = self.memoizer._memoize_kwargs_to_args(
             big_foo, 1, 2, d='bar', c='foo')
         assert (args == expected)
+
+    def test_17_memoize_none_value(self):
+        from memoize import DefaultCacheObject
+        self.memoizer = Memoizer(memoize_none_values=True)
+
+        @self.memoizer.memoize()
+        def foo():
+            return None
+
+        cache_key = foo.make_cache_key(foo.uncached)
+        assert isinstance(self.memoizer.get(cache_key), DefaultCacheObject)
+        result = foo()
+        assert result is None
+        assert self.memoizer.get(cache_key) is None
+
+        self.memoizer.delete_memoized(foo)
+        cache_key = foo.make_cache_key(foo.uncached)
+        assert isinstance(self.memoizer.get(cache_key), DefaultCacheObject)
