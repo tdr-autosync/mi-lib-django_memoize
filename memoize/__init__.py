@@ -23,11 +23,21 @@ class DefaultCacheObject(object):
 DEFAULT_CACHE_OBJECT = DefaultCacheObject()
 
 
+def _get_argspec(f):
+    try:
+        argspec = inspect.getargspec(f)
+    except ValueError:
+        # this can happen in python 3.5 when
+        # function has keyword-only arguments or annotations
+        argspec = inspect.getfullargspec(f)
+    return argspec
+
+
 def function_namespace(f, args=None):
     """
     Attempts to returns unique namespace for function
     """
-    m_args = inspect.getargspec(f)[0]
+    m_args = _get_argspec(f).args
     instance_token = None
 
     instance_self = getattr(f, '__self__', None)
@@ -213,7 +223,7 @@ class Memoizer(object):
         #: 1, b=2 is equivilant to a=1, b=2, etc.
         new_args = []
         arg_num = 0
-        argspec = inspect.getargspec(f)
+        argspec = _get_argspec(f)
 
         args_len = len(argspec.args)
         for i in range(args_len):
