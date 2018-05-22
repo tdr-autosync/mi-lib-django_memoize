@@ -37,7 +37,7 @@ Memoization is managed through a ``Memoizer`` instance::
 
     memoizer = Memoizer()
 
-Hovewer, we recommend to use already defined instance of ``Memoizer`` and
+However, we recommend to use already defined instance of ``Memoizer`` and
 use its methods::
 
     from memoize import memoize, delete_memoized, delete_memoized_verhash
