@@ -13,7 +13,7 @@ from setuptools import setup
 
 setup(
     name='django-memoize',
-    version='2.1.0',
+    version='2.1.1',
     packages=['memoize'],
     include_package_data=True,
     license='BSD License',
@@ -22,9 +22,7 @@ setup(
     author='Thomas Vavrys',
     author_email='tvavrys@sleio.com',
     long_description=__doc__,
-    install_requires=[
-        'django >= 1.7'
-    ],
+    install_requires=['django'],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',

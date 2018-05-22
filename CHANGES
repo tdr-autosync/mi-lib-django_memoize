@@ -1,5 +1,9 @@
 Changelog
 
+Version 2.1.1
+`````````````
+- Deprecates unsupported Django versions
+
 Version 2.1.0
 `````````````
 

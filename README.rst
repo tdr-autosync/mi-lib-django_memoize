@@ -21,4 +21,4 @@ Documentation is available at http://pythonhosted.org/django-memoize/.
 Requirements
 ------------
 
-Django >= 1.7 is required.
+Latest supported Django versions. See `tox.ini`.
