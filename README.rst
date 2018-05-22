@@ -16,7 +16,7 @@ for Django. You can think of it as a cache for function or method results.
 Documentation
 -------------
 
-Documentation is available at http://pythonhosted.org/django-memoize/.
+Documentation is available at http://django-memoize.readthedocs.io/en/latest/.
 
 Requirements
 ------------
