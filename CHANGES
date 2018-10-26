@@ -1,5 +1,10 @@
 Changelog
 
+Version 2.2.0
+`````````````
+- Enable wheels
+- Py3 support improvements
+
 Version 2.1.1
 `````````````
 - Deprecates unsupported Django versions
