@@ -7,6 +7,7 @@ import hashlib
 import inspect
 import logging
 import uuid
+import sys
 
 from django.conf import settings
 from django.core.cache import cache as default_cache
@@ -24,12 +25,16 @@ DEFAULT_CACHE_OBJECT = DefaultCacheObject()
 
 
 def _get_argspec(f):
-    try:
-        argspec = inspect.getargspec(f)
-    except ValueError:
-        # this can happen in python 3.5 when
-        # function has keyword-only arguments or annotations
+    if sys.version_info[:2] >= (3, 0):
+        # inspect has deprecated getargspec since version 3.0
         argspec = inspect.getfullargspec(f)
+    else:
+        try:
+            argspec = inspect.getargspec(f)
+        except ValueError:
+            # this can happen in python 3.5 when
+            # function has keyword-only arguments or annotations
+            argspec = inspect.getfullargspec(f)
     return argspec
 
 

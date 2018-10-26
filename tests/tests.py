@@ -2,11 +2,12 @@
 # vi:si:et:sw=4:sts=4:ts=4
 
 import random
+import sys
 import time
 
 from django.test import SimpleTestCase
 
-from memoize import Memoizer, function_namespace
+from memoize import Memoizer, function_namespace, _get_argspec
 
 
 class MemoizeTestCase(SimpleTestCase):
@@ -521,3 +522,15 @@ class MemoizeTestCase(SimpleTestCase):
 
         assert(a.foo(b) != result1)
         assert(a.foo(c) == result2)
+
+    def test_18_python3_uses_getfullargspec(self):
+        def foo():
+            return None
+
+        major_version = sys.version_info.major
+        argspec = _get_argspec(foo)
+
+        if major_version < 3:
+            assert argspec.__class__.__name__ is 'ArgSpec'
+        else:
+            assert argspec.__class__.__name__ is 'FullArgSpec'
