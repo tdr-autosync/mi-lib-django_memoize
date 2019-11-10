@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 # vi:si:et:sw=4:sts=4:ts=4
 
+import datetime
 import random
 import sys
 import time
 
 from django.test import SimpleTestCase
 
-from memoize import Memoizer, function_namespace, _get_argspec
+from freezegun import freeze_time
+from memoize import Memoizer, _get_argspec, function_namespace
+from mock import MagicMock
 
 
 class MemoizeTestCase(SimpleTestCase):
@@ -37,46 +40,53 @@ class MemoizeTestCase(SimpleTestCase):
 
     def test_06_memoize(self):
         @self.memoizer.memoize(5)
-        def big_foo(a, b):
-            return a+b+random.randrange(0, 100000)
+        def big_foo(a, b, func=lambda x: x):
+            func(a)
+            return a + b
 
-        result = big_foo(5, 2)
+        test_func = MagicMock()
 
-        time.sleep(1)
+        big_foo(5, 2, func=test_func)
 
-        assert big_foo(5, 2) == result
+        # Cached call
+        big_foo(5, 2, func=test_func)
 
-        result2 = big_foo(5, 3)
-        assert result2 != result
+        # We are expecting only 1 call here as second one should be cached
+        assert test_func.call_count == 1, "Count: {}".format(
+            test_func.call_count)
 
-        time.sleep(6)
-
-        assert big_foo(5, 2) != result
-
-        time.sleep(1)
-
-        assert big_foo(5, 3) != result2
+        # different arguments so we should have additional call
+        big_foo(5, 3, func=test_func)
+        assert test_func.call_count == 2, "Count: {}".format(
+            test_func.call_count)
+        # Expired
+        now = datetime.datetime.utcfromtimestamp(time.time())
+        with freeze_time(now) as frozen_datetime:
+            frozen_datetime.tick(delta=datetime.timedelta(seconds=6))
+            # Cache should be expired so we have increasing amount of calls
+            big_foo(5, 2, func=test_func)
+            assert test_func.call_count == 3, "Count: {}".format(
+                test_func.call_count)
+            big_foo(5, 3, func=test_func)
+            assert test_func.call_count == 4, "Count: {}".format(
+                test_func.call_count)
 
     def test_06a_memoize(self):
         @self.memoizer.memoize(50)
         def big_foo(a, b):
-            return a+b+random.randrange(0, 100000)
+            return a + b + random.randrange(0, 100000)
 
         result = big_foo(5, 2)
-
-        time.sleep(2)
 
         assert big_foo(5, 2) == result
 
     def test_07_delete_memoize(self):
         @self.memoizer.memoize(5)
         def big_foo(a, b):
-            return a+b+random.randrange(0, 100000)
+            return a + b + random.randrange(0, 100000)
 
         result = big_foo(5, 2)
         result2 = big_foo(5, 3)
-
-        time.sleep(1)
 
         assert big_foo(5, 2) == result
         assert big_foo(5, 2) == result
@@ -91,12 +101,10 @@ class MemoizeTestCase(SimpleTestCase):
     def test_07b_delete_memoized_verhash(self):
         @self.memoizer.memoize(5)
         def big_foo(a, b):
-            return a+b+random.randrange(0, 100000)
+            return a + b + random.randrange(0, 100000)
 
         result = big_foo(5, 2)
         result2 = big_foo(5, 3)
-
-        time.sleep(1)
 
         assert big_foo(5, 2) == result
         assert big_foo(5, 2) == result
@@ -122,7 +130,7 @@ class MemoizeTestCase(SimpleTestCase):
     def test_08_delete_memoize(self):
         @self.memoizer.memoize()
         def big_foo(a, b):
-            return a+b+random.randrange(0, 100000)
+            return a + b + random.randrange(0, 100000)
 
         result_a = big_foo(5, 1)
         result_b = big_foo(5, 2)
@@ -142,7 +150,7 @@ class MemoizeTestCase(SimpleTestCase):
     def test_09_args_memoize(self):
         @self.memoizer.memoize()
         def big_foo(a, b):
-            return sum(a)+sum(b)+random.randrange(0, 100000)
+            return sum(a) + sum(b) + random.randrange(0, 100000)
 
         result_a = big_foo([5, 3, 2], [1])
         result_b = big_foo([3, 3], [3, 1])
@@ -163,7 +171,7 @@ class MemoizeTestCase(SimpleTestCase):
     def test_10_kwargs_memoize(self):
         @self.memoizer.memoize()
         def big_foo(a, b=None):
-            return a+sum(b.values())+random.randrange(0, 100000)
+            return a + sum(b.values()) + random.randrange(0, 100000)
 
         result_a = big_foo(1, dict(one=1, two=2))
         result_b = big_foo(5, dict(three=3, four=4))
@@ -181,7 +189,7 @@ class MemoizeTestCase(SimpleTestCase):
         def big_foo(a=None):
             if a is None:
                 a = 0
-            return a+random.random()
+            return a + random.random()
 
         result_a = big_foo()
         result_b = big_foo(5)
@@ -194,7 +202,7 @@ class MemoizeTestCase(SimpleTestCase):
     def test_10a_arg_kwarg_memoize(self):
         @self.memoizer.memoize()
         def f(a, b, c=1):
-            return a+b+c+random.randrange(0, 100000)
+            return a + b + c + random.randrange(0, 100000)
 
         assert f(1, 2) == f(1, 2, c=1)
         assert f(1, 2) == f(1, 2, 1)
@@ -372,14 +380,12 @@ class MemoizeTestCase(SimpleTestCase):
             @classmethod
             @self.memoizer.memoize(5)
             def big_foo(cls, a, b, *args):
-                return a+b+sum(args)+random.randrange(0, 100000)
+                return a + b + sum(args) + random.randrange(0, 100000)
 
         result = Mock.big_foo(5, 2)
         result2 = Mock.big_foo(5, 3)
         result3 = Mock.big_foo(5, 2, 1)
         result4 = Mock.big_foo(5, 3, 1)
-
-        time.sleep(1)
 
         assert Mock.big_foo(5, 2) == result
         assert Mock.big_foo(5, 2) == result
@@ -400,7 +406,8 @@ class MemoizeTestCase(SimpleTestCase):
     def test_14_memoized_multiple_arg_kwarg_calls(self):
         @self.memoizer.memoize()
         def big_foo(a, b, c=[1, 1], d=[1, 1]):
-            return sum(a)+sum(b)+sum(c)+sum(d)+random.randrange(0, 100000)
+            return (sum(a) + sum(b) + sum(c) + sum(d) +
+                    random.randrange(0, 100000))
 
         result_a = big_foo([5, 3, 2], [1], c=[3, 3], d=[3, 3])
 
@@ -411,7 +418,8 @@ class MemoizeTestCase(SimpleTestCase):
     def test_15_memoize_multiple_arg_kwarg_delete(self):
         @self.memoizer.memoize()
         def big_foo(a, b, c=[1, 1], d=[1, 1]):
-            return sum(a)+sum(b)+sum(c)+sum(d)+random.randrange(0, 100000)
+            return (sum(a) + sum(b) + sum(c) + sum(d) +
+                    random.randrange(0, 100000))
 
         result_a = big_foo([5, 3, 2], [1], c=[3, 3], d=[3, 3])
         self.memoizer.delete_memoized(big_foo, [5, 3, 2], [1], [3, 3], [3, 3])
@@ -448,7 +456,7 @@ class MemoizeTestCase(SimpleTestCase):
 
     def test_16_memoize_kwargs_to_args(self):
         def big_foo(a, b, c=None, d=None):
-            return sum(a)+sum(b)+random.randrange(0, 100000)
+            return sum(a) + sum(b) + random.randrange(0, 100000)
 
         expected = (1, 2, 'foo', 'bar')
 
@@ -512,8 +520,6 @@ class MemoizeTestCase(SimpleTestCase):
 
         result1 = a.foo(b)
         result2 = a.foo(c)
-
-        time.sleep(1)
 
         assert(a.foo(b) == result1)
         assert(a.foo(c) == result2)
