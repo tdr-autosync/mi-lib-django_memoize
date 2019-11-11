@@ -16,6 +16,7 @@ from mock import MagicMock
 class MemoizeTestCase(SimpleTestCase):
     def setUp(self):
         self.memoizer = Memoizer()
+        self.memoizer.clear()
 
     def test_00_set(self):
         self.memoizer.set('hi', 'hello')
@@ -39,24 +40,24 @@ class MemoizeTestCase(SimpleTestCase):
         assert self.memoizer.get('hi') is self.memoizer.default_cache_value
 
     def test_06_memoize(self):
-        @self.memoizer.memoize(5)
-        def big_foo(a, b, func=lambda x: x):
-            func(a)
-            return a + b
-
         test_func = MagicMock()
 
-        big_foo(5, 2, func=test_func)
+        @self.memoizer.memoize(5)
+        def big_foo(a, b):
+            test_func(a)
+            return a + b
+
+        big_foo(5, 2)
 
         # Cached call
-        big_foo(5, 2, func=test_func)
+        big_foo(5, 2)
 
         # We are expecting only 1 call here as second one should be cached
         assert test_func.call_count == 1, "Count: {}".format(
             test_func.call_count)
 
         # different arguments so we should have additional call
-        big_foo(5, 3, func=test_func)
+        big_foo(5, 3)
         assert test_func.call_count == 2, "Count: {}".format(
             test_func.call_count)
         # Expired
@@ -64,39 +65,70 @@ class MemoizeTestCase(SimpleTestCase):
         with freeze_time(now) as frozen_datetime:
             frozen_datetime.tick(delta=datetime.timedelta(seconds=6))
             # Cache should be expired so we have increasing amount of calls
-            big_foo(5, 2, func=test_func)
+            big_foo(5, 2)
             assert test_func.call_count == 3, "Count: {}".format(
                 test_func.call_count)
-            big_foo(5, 3, func=test_func)
+            big_foo(5, 3)
             assert test_func.call_count == 4, "Count: {}".format(
                 test_func.call_count)
 
     def test_06a_memoize(self):
+        test_func = MagicMock()
+
         @self.memoizer.memoize(50)
         def big_foo(a, b):
-            return a + b + random.randrange(0, 100000)
+            test_func(a)
+            return a + b
 
-        result = big_foo(5, 2)
+        big_foo(5, 2)
+        assert test_func.call_count == 1, "Count: {}".format(
+            test_func.call_count)
 
-        assert big_foo(5, 2) == result
+        big_foo(5, 2)
+        assert test_func.call_count == 1, "Count: {}".format(
+            test_func.call_count)
 
     def test_07_delete_memoize(self):
+        test_func = MagicMock()
+
         @self.memoizer.memoize(5)
         def big_foo(a, b):
-            return a + b + random.randrange(0, 100000)
+            test_func(a)
+            return a + b
 
         result = big_foo(5, 2)
-        result2 = big_foo(5, 3)
+        assert test_func.call_count == 1, "Count: {}".format(
+            test_func.call_count)
 
-        assert big_foo(5, 2) == result
-        assert big_foo(5, 2) == result
+        result2 = big_foo(5, 3)
+        assert test_func.call_count == 2, "Count: {}".format(
+            test_func.call_count)
+
+        big_foo(5, 2)
+        assert test_func.call_count == 2, "Count: {}".format(
+            test_func.call_count)
+
+        big_foo(5, 2)
+        assert test_func.call_count == 2, "Count: {}".format(
+            test_func.call_count)
+
         assert big_foo(5, 3) != result
+        assert test_func.call_count == 2, "Count: {}".format(
+            test_func.call_count)
+
         assert big_foo(5, 3) == result2
+        assert test_func.call_count == 2, "Count: {}".format(
+            test_func.call_count)
 
         self.memoizer.delete_memoized(big_foo)
 
-        assert big_foo(5, 2) != result
-        assert big_foo(5, 3) != result2
+        assert big_foo(5, 2) == result
+        assert test_func.call_count == 3, "Count: {}".format(
+            test_func.call_count)
+
+        assert big_foo(5, 3) == result2
+        assert test_func.call_count == 4, "Count: {}".format(
+            test_func.call_count)
 
     def test_07b_delete_memoized_verhash(self):
         @self.memoizer.memoize(5)
