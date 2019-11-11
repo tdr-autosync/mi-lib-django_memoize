@@ -91,6 +91,7 @@ class Memoizer(object):
     """
     This class is used to control the memoizer objects.
     """
+
     def __init__(self, cache=default_cache, cache_prefix='memoize',
                  default_cache_value=DEFAULT_CACHE_OBJECT):
         self.cache = cache
@@ -138,7 +139,9 @@ class Memoizer(object):
         self.cache.set_many(data=mapping, timeout=timeout)
 
     def _memvname(self, funcname):
-        return funcname + '_memver'
+        return hashlib.md5(
+            force_bytes(funcname)
+        ).hexdigest() + "_memver"
 
     def _memoize_make_version_hash(self):
         return uuid.uuid4().hex
