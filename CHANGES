@@ -1,5 +1,9 @@
 Changelog
 
+Version 2.2.1
+`````````````
+- Fix key incompatibility with MemCached
+
 Version 2.2.0
 `````````````
 - Enable wheels
