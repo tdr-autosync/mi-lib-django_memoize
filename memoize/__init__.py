@@ -13,6 +13,7 @@ from django.conf import settings
 from django.core.cache import cache as default_cache
 from django.core.cache.backends.base import DEFAULT_TIMEOUT
 from django.utils.encoding import force_bytes
+from django.utils.six import text_type, string_types, iteritems
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +191,12 @@ class Memoizer(object):
 
         return fname, ''.join(version_data_list)
 
-    def _memoize_make_cache_key(self, make_name=None, timeout=DEFAULT_TIMEOUT):
+    def _memoize_make_cache_key(
+            self,
+            make_name=None,
+            timeout=DEFAULT_TIMEOUT,
+            convert_to_unicode=False
+    ):
         """
         Function used to create the cache_key for memoized functions.
         """
@@ -212,6 +218,37 @@ class Memoizer(object):
                 )
             else:
                 keyargs, keykwargs = args, kwargs
+
+            # convert string-type parameters to `unicode`, if necessary
+            if convert_to_unicode:
+                # convert function name to `unicode`
+                if isinstance(altfname, string_types):
+                    altfname = text_type(altfname)
+
+                # convert all string values in `args` to `unicode`
+                for i, elem in enumerate(keyargs):
+                    if isinstance(elem, string_types):
+                        keyargs[i] = text_type(elem)
+
+                # we have to save the keys here as the dictionary may mutate
+                # during the course of iteration
+                keys = list(keykwargs.keys())
+
+                # convert all string keys in `kwargs` to `unicode`
+                for k in keys:
+                    value = keykwargs[k]
+
+                    if isinstance(k, string_types):
+                        new_k = text_type(k)
+                        keykwargs[new_k] = value
+                        # avoid doubling of keys
+                        if type(new_k) != type(k):
+                            del keykwargs[k]
+
+                # convert all string values in `kwargs` to `unicode`
+                for k, v in iteritems(keykwargs):
+                    if isinstance(v, string_types):
+                        keykwargs[k] = text_type(v)
 
             cache_key = hashlib.md5(
                 force_bytes((altfname, keyargs, keykwargs))
@@ -282,7 +319,13 @@ class Memoizer(object):
 
         return tuple(new_args), kwargs
 
-    def memoize(self, timeout=DEFAULT_TIMEOUT, make_name=None, unless=None):
+    def memoize(
+            self,
+            timeout=DEFAULT_TIMEOUT,
+            make_name=None,
+            unless=None,
+            convert_to_unicode=False
+    ):
         """
         Use this to cache the result of a function, taking its arguments into
         account in the cache key.
@@ -325,17 +368,25 @@ class Memoizer(object):
 
                     readable and writable
 
+                **convert_to_unicode**
+                    A boolean flag to enable conversion of strings to `unicode`
+                    objects. Primarily used when generating the cache_key.
+
+                    readable and writable
+
 
         :param timeout: Default: 300. If set to an integer, will cache
                         for that amount of time. Unit of time is in seconds.
-        :param make_name: Default None. If set this is a function that accepts
+        :param make_name: Default: None. If set this is a function that accepts
                           a single argument, the function name, and returns a
                           new string to be used as the function name.
                           If not set then the function name is used.
-        :param unless: Default None. Cache will *always* execute the caching
-                       facilities unelss this callable is true.
+        :param unless: Default: None. Cache will *always* execute the caching
+                       facilities unless this callable is true.
                        This will bypass the caching entirely.
-
+        :param convert_to_unicode: Default: False. If set, will determine if
+                                   string objects are converted to `unicode`
+                                   during the cache_key generation process.
         """
 
         def memoize(f):
@@ -345,6 +396,7 @@ class Memoizer(object):
                 if callable(unless) and unless() is True:
                     return f(*args, **kwargs)
 
+                # try to fetch the function's return value from the cache
                 try:
                     cache_key = decorated_function.make_cache_key(
                         f, *args, **kwargs
@@ -358,6 +410,8 @@ class Memoizer(object):
                     )
                     return f(*args, **kwargs)
 
+                # if a cache miss occurs, run the function from scratch
+                # and cache the resulting return value
                 if rv == self.default_cache_value:
                     rv = f(*args, **kwargs)
                     try:
@@ -376,7 +430,7 @@ class Memoizer(object):
             decorated_function.uncached = f
             decorated_function.cache_timeout = timeout
             decorated_function.make_cache_key = self._memoize_make_cache_key(
-                make_name, decorated_function
+                make_name, decorated_function, convert_to_unicode
             )
             decorated_function.delete_memoized = (
                 lambda: self.delete_memoized(f)
