@@ -143,7 +143,7 @@ class MemoizeTestCase(SimpleTestCase):
         assert big_foo(5, 2) != result_b
 
         # Cleanup bigfoo 5,1 5,2 or it might conflict with
-        # following run if it also uses memecache
+        # following run if it also uses memcache
         self.memoizer.delete_memoized(big_foo, 5, 2)
         self.memoizer.delete_memoized(big_foo, 5, 1)
 
@@ -164,7 +164,7 @@ class MemoizeTestCase(SimpleTestCase):
         assert big_foo([3, 3], [3, 1]) == result_b
 
         # Cleanup bigfoo 5,1 5,2 or it might conflict with
-        # following run if it also uses memecache
+        # following run if it also uses memcache
         self.memoizer.delete_memoized(big_foo, [5, 3, 2], [1])
         self.memoizer.delete_memoized(big_foo, [3, 3], [1])
 
