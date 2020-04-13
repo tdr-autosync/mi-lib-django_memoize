@@ -225,10 +225,14 @@ class Memoizer(object):
                 if isinstance(altfname, string_types):
                     altfname = text_type(altfname)
 
+                keyargs = list(keyargs)
+
                 # convert all string values in `args` to `unicode`
                 for i, elem in enumerate(keyargs):
                     if isinstance(elem, string_types):
                         keyargs[i] = text_type(elem)
+
+                keyargs = tuple(keyargs)
 
                 # we have to save the keys here as the dictionary may mutate
                 # during the course of iteration
