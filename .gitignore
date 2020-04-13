@@ -7,3 +7,5 @@ dist/
 django_memoize.egg-info/*
 .eggs/*
 .coverage
+venv/*
+.idea/*

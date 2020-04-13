@@ -340,9 +340,12 @@ class Memoizer(object):
 
         def memoize(f):
             @functools.wraps(f)
-            def decorated_function(*args, **kwargs):
+            def decorated_function(*args, _bypass_cache=False, **kwargs):
                 #: bypass cache
                 if callable(unless) and unless() is True:
+                    return f(*args, **kwargs)
+
+                if _bypass_cache:
                     return f(*args, **kwargs)
 
                 try:
@@ -535,6 +538,43 @@ class Memoizer(object):
                 raise
             logger.exception("Exception possibly due to cache backend.")
 
+    def update_memoized(self, f, *args, **kwargs):
+        """
+        Updates the specified functions caches only after function returns, based by given parameters.
+        """
+        if not callable(f):
+            raise DeprecationWarning(
+                "Deleting messages by relative name is no longer"
+                " reliable, please switch to a function reference"
+            )
+
+        try:
+            cache_key = f.make_cache_key(
+                f, *args, **kwargs
+            )
+        except Exception:
+            if settings.DEBUG:
+                raise
+            logger.exception(
+                "Exception possibly due to cache backend."
+            )
+            return f(*args, **kwargs)
+
+        rv = f(*args, _bypass_cache=True, **kwargs)
+
+        try:
+            self.set(
+                cache_key, rv,
+                timeout=f.cache_timeout
+            )
+        except Exception:
+            if settings.DEBUG:
+                raise
+            logger.exception(
+                "Exception possibly due to cache backend."
+            )
+        return rv
+
 
 # Memoizer instance
 _memoizer = Memoizer()
@@ -543,3 +583,4 @@ _memoizer = Memoizer()
 memoize = _memoizer.memoize
 delete_memoized = _memoizer.delete_memoized
 delete_memoized_verhash = _memoizer.delete_memoized_verhash
+update_memoized = _memoizer.update_memoized
