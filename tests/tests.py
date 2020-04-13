@@ -5,12 +5,13 @@ import datetime
 import random
 import sys
 import time
+import logging
 
 from django.test import SimpleTestCase
 
 from freezegun import freeze_time
 from memoize import Memoizer, _get_argspec, function_namespace
-from mock import MagicMock
+from mock import MagicMock, patch
 
 
 class MemoizeTestCase(SimpleTestCase):
@@ -37,6 +38,24 @@ class MemoizeTestCase(SimpleTestCase):
         self.memoizer.delete('hi')
 
         assert self.memoizer.get('hi') is self.memoizer.default_cache_value
+
+    def test_03_delete_many(self):
+        self.memoizer.set('hi', 'hello')
+        self.memoizer.set('bye', 'goodbye')
+
+        self.memoizer.delete_many('hi', 'bye')
+
+        assert self.memoizer.get('hi') is self.memoizer.default_cache_value
+        assert self.memoizer.get('bye') is self.memoizer.default_cache_value
+
+    def test_04_clear(self):
+        self.memoizer.set('hi', 'hello')
+        self.memoizer.set('bye', 'goodbye')
+
+        self.memoizer.clear()
+
+        assert self.memoizer.get('hi') is self.memoizer.default_cache_value
+        assert self.memoizer.get('bye') is self.memoizer.default_cache_value
 
     def test_06_memoize(self):
         @self.memoizer.memoize(5)
@@ -540,3 +559,199 @@ class MemoizeTestCase(SimpleTestCase):
             assert argspec.__class__.__name__ is 'ArgSpec'
         else:
             assert argspec.__class__.__name__ is 'FullArgSpec'
+
+    def test_19_memoize_make_name(self):
+        @self.memoizer.memoize()
+        def f():
+            return None
+
+        without_make_name = f.make_cache_key(f.uncached)
+
+        @self.memoizer.memoize(make_name=lambda fname: 'make_name' + fname)
+        def f():
+            return None
+
+        with_make_name = f.make_cache_key(f.uncached)
+
+        assert without_make_name != with_make_name
+
+    def test_20_memoize_convert_to_unicode(self):
+        # disable convert_to_unicode flag
+        @self.memoizer.memoize(
+            make_name=lambda fname: 'make_name',
+            convert_to_unicode=False,
+        )
+        def f(*args, **kwargs):
+            return random.randrange(0, 100000)
+
+        old_value = f('a', 'b', c='c', d='d')
+        new_value = f(u'a', u'b', c=u'c', d=u'd')
+
+        assert new_value != old_value
+
+        self.memoizer.clear()
+
+        # enable convert_to_unicode flag
+        @self.memoizer.memoize(
+            make_name=lambda fname: 'make_name',
+            convert_to_unicode=True,
+        )
+        def f(*args, **kwargs):
+            return random.randrange(0, 100000)
+
+        old_value = f('a', 'b', c='c', d='d')
+        new_value = f(u'a', u'b', c=u'c', d=u'd')
+
+        assert new_value == old_value
+
+    def test_21_memoize_unless(self):
+        @self.memoizer.memoize(unless=lambda: True)
+        def f():
+            return random.randrange(0, 100000)
+
+        old_value = f()
+        new_value = f()
+
+        assert new_value != old_value
+
+    @patch('memoize.Memoizer.get', side_effect=Exception)
+    def test_22_memoize_get_backend_error(self, memoizer_get):
+        logging.basicConfig()
+
+        # disable logger (to avoid cluttering test output)
+        logging.disable(logging.ERROR)
+
+        memoizer = Memoizer()
+
+        @memoizer.memoize()
+        def f():
+            return random.randrange(0, 100000)
+
+        cache_key = f.make_cache_key(f.uncached)
+
+        old_value = f()
+        memoizer_get.assert_called_with(cache_key)
+
+        memoizer_get.reset_mock()
+
+        new_value = f()
+        memoizer_get.assert_called_with(cache_key)
+
+        assert new_value != old_value
+
+        # re-enable logger
+        logging.disable(logging.NOTSET)
+
+    @patch('memoize.Memoizer.set', side_effect=Exception)
+    def test_23_memoize_set_backend_error(self, memoizer_set):
+        logging.basicConfig()
+
+        # disable logger (to avoid cluttering test output)
+        logging.disable(logging.ERROR)
+
+        memoizer = Memoizer()
+
+        @memoizer.memoize()
+        def f():
+            return random.randrange(0, 100000)
+
+        cache_key = f.make_cache_key(f.uncached)
+
+        old_value = f()
+        memoizer_set.assert_called_with(
+            cache_key,
+            old_value,
+            timeout=f.cache_timeout
+        )
+
+        memoizer_set.reset_mock()
+
+        new_value = f()
+        memoizer_set.assert_called_with(
+            cache_key,
+            new_value,
+            timeout=f.cache_timeout
+        )
+
+        assert new_value != old_value
+
+        # re-enable logger
+        logging.disable(logging.NOTSET)
+
+    def test_24_delete_memoized_not_callable(self):
+        warning_raised = False
+
+        try:
+            self.memoizer.delete_memoized('function_name')
+        except DeprecationWarning:
+            warning_raised = True
+
+        assert warning_raised
+
+    @patch('memoize.Memoizer.delete', side_effect=Exception)
+    def test_25_delete_memoized_backend_error(self, memoizer_delete):
+        logging.basicConfig()
+
+        # disable logger (to avoid cluttering test output)
+        logging.disable(logging.ERROR)
+
+        memoizer = Memoizer()
+
+        @memoizer.memoize()
+        def f(*args, **kwargs):
+            return random.randrange(0, 100000)
+
+        cache_key = f.make_cache_key(f.uncached, 'a', 'b', c='c', d='d')
+
+        old_value = f('a', 'b', c='c', d='d')
+
+        memoizer.delete_memoized(f, 'a', 'b', c='c', d='d')
+        memoizer_delete.assert_called_with(cache_key)
+
+        new_value = f('a', 'b', c='c', d='d')
+
+        assert new_value == old_value
+
+        # re-enable logger
+        logging.disable(logging.NOTSET)
+
+    def test_26_delete_memoized_verhash_not_callable(self):
+        warning_raised = False
+
+        try:
+            self.memoizer.delete_memoized_verhash('function_name')
+        except DeprecationWarning:
+            warning_raised = True
+
+        assert warning_raised
+
+    @patch('memoize.Memoizer.delete', side_effect=Exception)
+    def test_27_delete_memoized_verhash_backend_error(self, memoizer_delete):
+        logging.basicConfig()
+
+        # disable logger (to avoid cluttering test output)
+        logging.disable(logging.ERROR)
+
+        memoizer = Memoizer()
+
+        @memoizer.memoize()
+        def f():
+            return random.randrange(0, 100000)
+
+        _fname, _ = function_namespace(f)
+        version_key = self.memoizer._memvname(_fname)
+
+        result = f()
+
+        assert f() == result
+        assert memoizer.get(version_key) is not memoizer.default_cache_value
+
+        memoizer.delete_memoized_verhash(f)
+
+        memoizer_delete.assert_called_with(version_key)
+
+        assert f() == result
+        assert memoizer.get(version_key) is not memoizer.default_cache_value
+
+        # re-enable logger
+        logging.disable(logging.NOTSET)
