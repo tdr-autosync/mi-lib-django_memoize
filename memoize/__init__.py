@@ -540,7 +540,11 @@ class Memoizer(object):
 
     def update_memoized(self, f, *args, **kwargs):
         """
-        Updates the specified functions caches only after function returns, based by given parameters.
+        Updates the specified function cache only after the function returns, based on given parameters.
+        Normally we need cache for computational intensive functions and the function takes a while to complete.
+        If you need to force update the cache periodically, instead of deleting the old cache and then calling
+        the decorated function (which would take time to complete), we get the result of the function call first
+        before we deleting the old cache.
         """
         if not callable(f):
             raise DeprecationWarning(
