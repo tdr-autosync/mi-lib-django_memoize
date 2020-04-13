@@ -576,6 +576,10 @@ class MemoizeTestCase(SimpleTestCase):
         assert without_make_name != with_make_name
 
     def test_20_memoize_convert_to_unicode(self):
+        # This feature only applies to <= Python 2.x
+        if sys.version_info >= (3, 0):
+            return
+
         # disable convert_to_unicode flag
         @self.memoizer.memoize(
             make_name=lambda fname: 'make_name',
