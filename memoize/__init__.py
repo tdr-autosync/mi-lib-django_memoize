@@ -358,7 +358,7 @@ class Memoizer(object):
                     )
                     return f(*args, **kwargs)
 
-                if rv == self.default_cache_value:
+                if rv is self.default_cache_value:
                     rv = f(*args, **kwargs)
                     try:
                         self.set(
