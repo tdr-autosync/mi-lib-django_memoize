@@ -1,5 +1,10 @@
 Changelog
 
+Version 2.3.0
+`````````````
+- Add support for boolean convert_to_unicode flag
+- Licence text update
+
 Version 2.2.1
 `````````````
 - Fix key incompatibility with MemCached
