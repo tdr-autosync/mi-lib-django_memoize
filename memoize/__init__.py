@@ -13,7 +13,6 @@ from django.conf import settings
 from django.core.cache import cache as default_cache
 from django.core.cache.backends.base import DEFAULT_TIMEOUT
 from django.utils.encoding import force_bytes
-from django.utils.six import text_type, string_types, iteritems
 
 logger = logging.getLogger(__name__)
 
@@ -222,15 +221,15 @@ class Memoizer(object):
             # convert string-type parameters to `unicode`, if necessary
             if convert_to_unicode:
                 # convert function name to `unicode`
-                if isinstance(altfname, string_types):
-                    altfname = text_type(altfname)
+                if isinstance(altfname, str):
+                    altfname = str(altfname)
 
                 keyargs = list(keyargs)
 
                 # convert all string values in `args` to `unicode`
                 for i, elem in enumerate(keyargs):
-                    if isinstance(elem, string_types):
-                        keyargs[i] = text_type(elem)
+                    if isinstance(elem, str):
+                        keyargs[i] = str(elem)
 
                 keyargs = tuple(keyargs)
 
@@ -242,17 +241,17 @@ class Memoizer(object):
                 for k in keys:
                     value = keykwargs[k]
 
-                    if isinstance(k, string_types):
-                        new_k = text_type(k)
+                    if isinstance(k, str):
+                        new_k = str(k)
                         keykwargs[new_k] = value
                         # avoid doubling of keys
                         if type(new_k) != type(k):
                             del keykwargs[k]
 
                 # convert all string values in `kwargs` to `unicode`
-                for k, v in iteritems(keykwargs):
-                    if isinstance(v, string_types):
-                        keykwargs[k] = text_type(v)
+                for k, v in keykwargs.items():
+                    if isinstance(v, str):
+                        keykwargs[k] = str(v)
 
             cache_key = hashlib.md5(
                 force_bytes((altfname, keyargs, keykwargs))
