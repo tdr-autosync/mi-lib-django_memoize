@@ -352,8 +352,6 @@ class Memoizer(object):
                     cache_key = decorated_function.make_cache_key(
                         f, *args, **kwargs
                     )
-                    print('check if memoized key exists or not')
-                    print(cache_key)
                     rv = self.get(cache_key)
                 except Exception:
                     if settings.DEBUG:
@@ -558,8 +556,9 @@ class Memoizer(object):
             cache_key = f.make_cache_key(
                 f, *args, **kwargs
             )
-            print('update cache key')
-            print(cache_key)
+            fname, instance_fname = function_namespace(f, args=args)
+            version_key = self._memvname(fname)
+            version_val = self.get(version_key)
         except Exception:
             if settings.DEBUG:
                 raise
@@ -571,6 +570,11 @@ class Memoizer(object):
         rv = f(*args, _bypass_cache=True, **kwargs)
 
         try:
+            if version_val != self.default_cache_value:
+                self.set(
+                    version_key, version_val,
+                    timeout=f.cache_timeout
+                )
             self.set(
                 cache_key, rv,
                 timeout=f.cache_timeout
