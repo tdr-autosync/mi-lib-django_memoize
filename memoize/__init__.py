@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-__version__ = '2.2.0'
+__version__ = '2.3.1'
 __versionfull__ = __version__
 
 import functools
 import hashlib
 import inspect
 import logging
-import uuid
 import sys
+import uuid
 
 from django.conf import settings
 from django.core.cache import cache as default_cache
