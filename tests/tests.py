@@ -575,40 +575,7 @@ class MemoizeTestCase(SimpleTestCase):
 
         assert without_make_name != with_make_name
 
-    def test_20_memoize_convert_to_unicode(self):
-        # This feature only applies to <= Python 2.x
-        if sys.version_info >= (3, 0):
-            return
-
-        # disable convert_to_unicode flag
-        @self.memoizer.memoize(
-            make_name=lambda fname: 'make_name',
-            convert_to_unicode=False,
-        )
-        def f(*args, **kwargs):
-            return random.randrange(0, 100000)
-
-        old_value = f('a', 'b', c='c', d='d')
-        new_value = f(u'a', u'b', c=u'c', d=u'd')
-
-        assert new_value != old_value
-
-        self.memoizer.clear()
-
-        # enable convert_to_unicode flag
-        @self.memoizer.memoize(
-            make_name=lambda fname: 'make_name',
-            convert_to_unicode=True,
-        )
-        def f(*args, **kwargs):
-            return random.randrange(0, 100000)
-
-        old_value = f('a', 'b', c='c', d='d')
-        new_value = f(u'a', u'b', c=u'c', d=u'd')
-
-        assert new_value == old_value
-
-    def test_21_memoize_unless(self):
+    def test_20_memoize_unless(self):
         @self.memoizer.memoize(unless=lambda: True)
         def f():
             return random.randrange(0, 100000)
@@ -619,7 +586,7 @@ class MemoizeTestCase(SimpleTestCase):
         assert new_value != old_value
 
     @patch('memoize.Memoizer.get', side_effect=Exception)
-    def test_22_memoize_get_backend_error(self, memoizer_get):
+    def test_21_memoize_get_backend_error(self, memoizer_get):
         logging.basicConfig()
 
         # disable logger (to avoid cluttering test output)
@@ -647,7 +614,7 @@ class MemoizeTestCase(SimpleTestCase):
         logging.disable(logging.NOTSET)
 
     @patch('memoize.Memoizer.set', side_effect=Exception)
-    def test_23_memoize_set_backend_error(self, memoizer_set):
+    def test_22_memoize_set_backend_error(self, memoizer_set):
         logging.basicConfig()
 
         # disable logger (to avoid cluttering test output)
@@ -682,7 +649,7 @@ class MemoizeTestCase(SimpleTestCase):
         # re-enable logger
         logging.disable(logging.NOTSET)
 
-    def test_24_delete_memoized_not_callable(self):
+    def test_23_delete_memoized_not_callable(self):
         warning_raised = False
 
         try:
@@ -693,7 +660,7 @@ class MemoizeTestCase(SimpleTestCase):
         assert warning_raised
 
     @patch('memoize.Memoizer.delete', side_effect=Exception)
-    def test_25_delete_memoized_backend_error(self, memoizer_delete):
+    def test_24_delete_memoized_backend_error(self, memoizer_delete):
         logging.basicConfig()
 
         # disable logger (to avoid cluttering test output)
@@ -719,7 +686,7 @@ class MemoizeTestCase(SimpleTestCase):
         # re-enable logger
         logging.disable(logging.NOTSET)
 
-    def test_26_delete_memoized_verhash_not_callable(self):
+    def test_25_delete_memoized_verhash_not_callable(self):
         warning_raised = False
 
         try:
@@ -730,7 +697,7 @@ class MemoizeTestCase(SimpleTestCase):
         assert warning_raised
 
     @patch('memoize.Memoizer.delete', side_effect=Exception)
-    def test_27_delete_memoized_verhash_backend_error(self, memoizer_delete):
+    def test_26_delete_memoized_verhash_backend_error(self, memoizer_delete):
         logging.basicConfig()
 
         # disable logger (to avoid cluttering test output)
