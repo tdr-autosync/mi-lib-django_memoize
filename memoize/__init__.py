@@ -13,7 +13,6 @@ from django.conf import settings
 from django.core.cache import cache as default_cache
 from django.core.cache.backends.base import DEFAULT_TIMEOUT
 from django.utils.encoding import force_bytes
-from django.utils.six import text_type, string_types, iteritems
 
 logger = logging.getLogger(__name__)
 
