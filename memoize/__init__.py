@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-__version__ = '2.2.0'
+__version__ = '2.3.1'
 __versionfull__ = __version__
 
 import functools
 import hashlib
 import inspect
 import logging
-import uuid
 import sys
+import uuid
 
 from django.conf import settings
 from django.core.cache import cache as default_cache
@@ -328,14 +328,13 @@ class Memoizer(object):
 
         :param timeout: Default: 300. If set to an integer, will cache
                         for that amount of time. Unit of time is in seconds.
-        :param make_name: Default None. If set this is a function that accepts
+        :param make_name: Default: None. If set this is a function that accepts
                           a single argument, the function name, and returns a
                           new string to be used as the function name.
                           If not set then the function name is used.
-        :param unless: Default None. Cache will *always* execute the caching
-                       facilities unelss this callable is true.
+        :param unless: Default: None. Cache will *always* execute the caching
+                       facilities unless this callable is true.
                        This will bypass the caching entirely.
-
         """
 
         def memoize(f):
@@ -348,6 +347,7 @@ class Memoizer(object):
                 if _bypass_cache:
                     return f(*args, **kwargs)
 
+                # try to fetch the function's return value from the cache
                 try:
                     cache_key = decorated_function.make_cache_key(
                         f, *args, **kwargs
@@ -361,6 +361,8 @@ class Memoizer(object):
                     )
                     return f(*args, **kwargs)
 
+                # if a cache miss occurs, run the function from scratch
+                # and cache the resulting return value
                 if rv == self.default_cache_value:
                     rv = f(*args, **kwargs)
                     try:
