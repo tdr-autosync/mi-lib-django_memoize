@@ -727,7 +727,7 @@ class MemoizeTestCase(SimpleTestCase):
         # re-enable logger
         logging.disable(logging.NOTSET)
 
-    def test_27_update_memoize(self):
+    def test_27_update_memoized(self):
         @self.memoizer.memoize(5)
         def big_foo(a, b):
             return a + b + random.randrange(0, 100000)
