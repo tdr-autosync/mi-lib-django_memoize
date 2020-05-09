@@ -728,14 +728,14 @@ class MemoizeTestCase(SimpleTestCase):
         logging.disable(logging.NOTSET)
 
     def test_27_update_memoized(self):
-        @self.memoizer.memoize(0.05)
+        @self.memoizer.memoize(0.1)
         def big_foo(a, b):
             return a + b + random.randrange(0, 100000)
 
         result = big_foo(5, 2)
         result2 = big_foo(5, 3)
 
-        time.sleep(0.03)
+        time.sleep(0.06)
         assert big_foo(5, 2) == result
         assert big_foo(5, 2) != result2
         assert big_foo(5, 3) != result
@@ -746,7 +746,7 @@ class MemoizeTestCase(SimpleTestCase):
         # make sure the updated cached results also extended the timeout accordingly
         # big_foo(5, 2) timeout would have been extended by another 5 seconds
         # big_foo(5, 3) timeout would have stayed the same so it would have expired after 3 additional seconds
-        time.sleep(0.03)
+        time.sleep(0.06)
         assert big_foo(5, 2) != result
         assert big_foo(5, 2) == result3
         assert big_foo(5, 3) != result2
