@@ -339,11 +339,12 @@ class Memoizer(object):
 
         def memoize(f):
             @functools.wraps(f)
-            def decorated_function(*args, _bypass_cache=False, **kwargs):
+            def decorated_function(*args, **kwargs):
                 #: bypass cache
                 if callable(unless) and unless() is True:
                     return f(*args, **kwargs)
 
+                _bypass_cache = kwargs.pop('_bypass_cache', False)
                 if _bypass_cache:
                     return f(*args, **kwargs)
 
