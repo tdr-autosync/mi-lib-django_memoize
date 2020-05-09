@@ -8,6 +8,7 @@ import time
 import logging
 
 from django.test import SimpleTestCase
+from django.conf import settings
 
 from freezegun import freeze_time
 from memoize import Memoizer, _get_argspec, function_namespace
@@ -788,8 +789,35 @@ class MemoizeTestCase(SimpleTestCase):
         # re-enable logger
         logging.disable(logging.NOTSET)
 
+    @patch('memoize.Memoizer.get', side_effect=Exception)
+    def test_30_update_memoized_backend_error(self, memoizer_get):
+        settings.DEBUG = True
+        logging.basicConfig()
+        # disable logger (to avoid cluttering test output)
+        logging.disable(logging.ERROR)
+
+        memoizer = Memoizer()
+
+        @memoizer.memoize()
+        def f():
+            return random.randrange(0, 100000)
+
+        exception_raised = False
+        try:
+            self.memoizer.update_memoized(f)
+        except Exception:
+            exception_raised = True
+        assert exception_raised
+
+        settings.DEBUG = False
+        memoizer_get.reset_mock()
+
+        # re-enable logger
+        logging.disable(logging.NOTSET)
+
     @patch('memoize.Memoizer.set', side_effect=Exception)
-    def test_30_update_memoized_backend_error(self, memoizer_set):
+    def test_31_update_memoized_backend_error(self, memoizer_set):
+
         logging.basicConfig()
 
         # disable logger (to avoid cluttering test output)
@@ -824,3 +852,31 @@ class MemoizeTestCase(SimpleTestCase):
 
         # re-enable logger
         logging.disable(logging.NOTSET)
+
+    @patch('memoize.Memoizer.set', side_effect=Exception)
+    def test_32_update_memoized_backend_error(self, memoizer_set):
+        settings.DEBUG = True
+        logging.basicConfig()
+
+        # disable logger (to avoid cluttering test output)
+        logging.disable(logging.ERROR)
+
+        memoizer = Memoizer()
+
+        @memoizer.memoize()
+        def f():
+            return random.randrange(0, 100000)
+
+        exception_raised = False
+        try:
+            self.memoizer.update_memoized(f)
+        except Exception:
+            exception_raised = True
+        assert exception_raised
+
+        settings.DEBUG = False
+        memoizer_set.reset_mock()
+
+        # re-enable logger
+        logging.disable(logging.NOTSET)
+
