@@ -5,22 +5,16 @@ language: python
 
 matrix:
   include:
-    - env: TOXENV=django111-py27
-      python: 2.7
-    - env: TOXENV=django111-py34
-      python: 3.4
     - env: TOXENV=django111-py35
       python: 3.5
     - env: TOXENV=django111-py36
       python: 3.6
-    - env: TOXENV=django20-py34
-      python: 3.4
     - env: TOXENV=django20-py35
       python: 3.5
     - env: TOXENV=django20-py36
       python: 3.6
     - env: TOXENV=django20-py310
-      python: "3.10"
+      python: "3.10.0"
 
 install:
   - pip install coveralls tox
