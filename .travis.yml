@@ -5,15 +5,11 @@ language: python
 
 matrix:
   include:
-    - env: TOXENV=django111-py35
-      python: 3.5
     - env: TOXENV=django111-py36
       python: 3.6
-    - env: TOXENV=django20-py35
-      python: 3.5
     - env: TOXENV=django20-py36
       python: 3.6
-    - env: TOXENV=django20-py310
+    - env: TOXENV=django22-py310
       python: "3.10.0"
 
 install:
