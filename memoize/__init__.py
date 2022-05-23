@@ -360,7 +360,7 @@ class Memoizer(object):
 
                 # if a cache miss occurs, run the function from scratch
                 # and cache the resulting return value
-                if rv == self.default_cache_value:
+                if isinstance(rv, DefaultCacheObject):
                     rv = f(*args, **kwargs)
                     try:
                         self.set(
