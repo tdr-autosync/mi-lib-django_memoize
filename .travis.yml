@@ -3,6 +3,10 @@ os: linux
 sudo: false
 language: python
 
+addons:
+  sonarcloud:
+    organization: "unhaggle"
+
 matrix:
   include:
     - env: TOXENV=django111-py36
@@ -13,7 +17,7 @@ matrix:
       python: "3.10.0"
     - env: TOXENV=django32-py310
       python: "3.10.0"
-    - env: TOXENV=django40-py310
+    - env: TOXENV=django40-py310 SONAR_GATE=true
       python: "3.10.0"
 
 install:
@@ -21,6 +25,11 @@ install:
 
 script:
   - tox
+  - |
+    if [ "$SONAR_GATE" = true ]; then
+      coverage xml
+      sonar-scanner -Dsonar.projectVersion=$(python ./setup.py --version)
+    fi
 
 after_success:
   - coveralls
