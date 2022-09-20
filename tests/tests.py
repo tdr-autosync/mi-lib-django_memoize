@@ -556,9 +556,9 @@ class MemoizeTestCase(SimpleTestCase):
         argspec = _get_argspec(foo)
 
         if major_version < 3:
-            assert argspec.__class__.__name__ is 'ArgSpec'
+            assert argspec.__class__.__name__ == 'ArgSpec'
         else:
-            assert argspec.__class__.__name__ is 'FullArgSpec'
+            assert argspec.__class__.__name__ == 'FullArgSpec'
 
     def test_19_memoize_make_name(self):
         @self.memoizer.memoize()
