@@ -344,6 +344,10 @@ class Memoizer(object):
                 if callable(unless) and unless() is True:
                     return f(*args, **kwargs)
 
+                _bypass_cache = kwargs.pop('_bypass_cache', False)
+                if _bypass_cache:
+                    return f(*args, **kwargs)
+
                 # try to fetch the function's return value from the cache
                 try:
                     cache_key = decorated_function.make_cache_key(
@@ -537,6 +541,55 @@ class Memoizer(object):
                 raise
             logger.exception("Exception possibly due to cache backend.")
 
+    def update_memoized(self, f, *args, **kwargs):
+        """
+        Updates the specified function cache only after the function returns, based on given parameters.
+        Normally we need cache for computational intensive functions and the function takes a while to complete.
+        If you need to force update the cache periodically, instead of deleting the old cache and then calling
+        the decorated function (which would take time to complete), we get the result of the function call first
+        before we deleting the old cache.
+        """
+        if not callable(f):
+            raise DeprecationWarning(
+                "Deleting messages by relative name is no longer"
+                " reliable, please switch to a function reference"
+            )
+
+        try:
+            cache_key = f.make_cache_key(
+                f, *args, **kwargs
+            )
+            fname, instance_fname = function_namespace(f, args=args)
+            version_key = self._memvname(fname)
+            version_val = self.get(version_key)
+        except Exception:
+            if settings.DEBUG:
+                raise
+            logger.exception(
+                "Exception possibly due to cache backend."
+            )
+            return f(*args, **kwargs)
+
+        rv = f(*args, _bypass_cache=True, **kwargs)
+
+        try:
+            if version_val != self.default_cache_value:
+                self.set(
+                    version_key, version_val,
+                    timeout=f.cache_timeout
+                )
+            self.set(
+                cache_key, rv,
+                timeout=f.cache_timeout
+            )
+        except Exception:
+            if settings.DEBUG:
+                raise
+            logger.exception(
+                "Exception possibly due to cache backend."
+            )
+        return rv
+
 
 # Memoizer instance
 _memoizer = Memoizer()
@@ -545,3 +598,4 @@ _memoizer = Memoizer()
 memoize = _memoizer.memoize
 delete_memoized = _memoizer.delete_memoized
 delete_memoized_verhash = _memoizer.delete_memoized_verhash
+update_memoized = _memoizer.update_memoized

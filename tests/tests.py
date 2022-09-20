@@ -8,6 +8,7 @@ import time
 import logging
 
 from django.test import SimpleTestCase
+from django.conf import settings
 
 from freezegun import freeze_time
 from memoize import Memoizer, _get_argspec, function_namespace
@@ -726,3 +727,156 @@ class MemoizeTestCase(SimpleTestCase):
 
         # re-enable logger
         logging.disable(logging.NOTSET)
+
+    def test_27_update_memoized(self):
+        @self.memoizer.memoize(0.05)
+        def big_foo(a, b):
+            return a + b + random.randrange(0, 100000)
+
+        result = big_foo(5, 2)
+        result2 = big_foo(5, 3)
+
+        time.sleep(0.03)
+        assert big_foo(5, 2) == result
+        assert big_foo(5, 2) != result2
+        assert big_foo(5, 3) != result
+        assert big_foo(5, 3) == result2
+        result3 = self.memoizer.update_memoized(big_foo, 5, 2)
+        assert big_foo(5, 3) == result2
+
+        # make sure the updated cached results also extended the timeout accordingly
+        # big_foo(5, 2) timeout would have been extended by another 5 seconds
+        # big_foo(5, 3) timeout would have stayed the same so it would have expired after 3 additional seconds
+        time.sleep(0.03)
+        assert big_foo(5, 2) != result
+        assert big_foo(5, 2) == result3
+
+    def test_28_update_memoized_not_callable(self):
+        warning_raised = False
+
+        try:
+            self.memoizer.update_memoized('function_name')
+        except DeprecationWarning:
+            warning_raised = True
+
+        assert warning_raised
+
+    @patch('memoize.Memoizer.get', side_effect=Exception)
+    def test_29_update_memoized_backend_error(self, memoizer_get):
+        logging.basicConfig()
+
+        # disable logger (to avoid cluttering test output)
+        logging.disable(logging.ERROR)
+
+        memoizer = Memoizer()
+
+        @memoizer.memoize()
+        def f():
+            return random.randrange(0, 100000)
+
+        cache_key = f.make_cache_key(f.uncached)
+
+        old_value = self.memoizer.update_memoized(f)
+        memoizer_get.assert_called_with(cache_key)
+
+        memoizer_get.reset_mock()
+
+        new_value = self.memoizer.update_memoized(f)
+        memoizer_get.assert_called_with(cache_key)
+
+        assert new_value != old_value
+
+        # re-enable logger
+        logging.disable(logging.NOTSET)
+
+    @patch('memoize.Memoizer.get', side_effect=Exception)
+    def test_30_update_memoized_backend_error(self, memoizer_get):
+        settings.DEBUG = True
+        logging.basicConfig()
+        # disable logger (to avoid cluttering test output)
+        logging.disable(logging.ERROR)
+
+        memoizer = Memoizer()
+
+        @memoizer.memoize()
+        def f():
+            return random.randrange(0, 100000)
+
+        exception_raised = False
+        try:
+            self.memoizer.update_memoized(f)
+        except Exception:
+            exception_raised = True
+        assert exception_raised
+
+        settings.DEBUG = False
+        memoizer_get.reset_mock()
+
+        # re-enable logger
+        logging.disable(logging.NOTSET)
+
+    @patch('memoize.Memoizer.set', side_effect=Exception)
+    def test_31_update_memoized_backend_error(self, memoizer_set):
+
+        logging.basicConfig()
+
+        # disable logger (to avoid cluttering test output)
+        logging.disable(logging.ERROR)
+
+        memoizer = Memoizer()
+
+        @memoizer.memoize()
+        def f():
+            return random.randrange(0, 100000)
+
+        old_value = self.memoizer.update_memoized(f)
+        fname, instance_fname = function_namespace(f, args=[])
+        version_key = self.memoizer._memvname(fname)
+        version_val = self.memoizer.get(version_key)
+        memoizer_set.assert_called_with(
+            version_key,
+            version_val,
+            timeout=f.cache_timeout
+        )
+
+        memoizer_set.reset_mock()
+
+        new_value = self.memoizer.update_memoized(f)
+        memoizer_set.assert_called_with(
+            version_key,
+            version_val,
+            timeout=f.cache_timeout
+        )
+
+        assert new_value != old_value
+
+        # re-enable logger
+        logging.disable(logging.NOTSET)
+
+    @patch('memoize.Memoizer.set', side_effect=Exception)
+    def test_32_update_memoized_backend_error(self, memoizer_set):
+        settings.DEBUG = True
+        logging.basicConfig()
+
+        # disable logger (to avoid cluttering test output)
+        logging.disable(logging.ERROR)
+
+        memoizer = Memoizer()
+
+        @memoizer.memoize()
+        def f():
+            return random.randrange(0, 100000)
+
+        exception_raised = False
+        try:
+            self.memoizer.update_memoized(f)
+        except Exception:
+            exception_raised = True
+        assert exception_raised
+
+        settings.DEBUG = False
+        memoizer_set.reset_mock()
+
+        # re-enable logger
+        logging.disable(logging.NOTSET)
+
