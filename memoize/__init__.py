@@ -10,11 +10,17 @@ import sys
 import uuid
 
 from django.conf import settings
-from django.core.cache import cache as default_cache
+from django.core.cache import caches, cache
 from django.core.cache.backends.base import DEFAULT_TIMEOUT
 from django.utils.encoding import force_bytes
 
 logger = logging.getLogger(__name__)
+
+
+if hasattr(settings, "MEMOIZE_CACHE_NAME"):
+    default_cache = caches[settings.MEMOIZE_CACHE_NAME]
+else:
+    default_cache = cache
 
 
 class DefaultCacheObject(object):
