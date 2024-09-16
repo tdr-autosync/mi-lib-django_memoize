@@ -8,6 +8,7 @@ import inspect
 import logging
 import sys
 import uuid
+import time
 
 from django.conf import settings
 from django.core.cache import cache as default_cache
@@ -389,7 +390,7 @@ class Memoizer(object):
 
             return decorated_function
         return memoize
-        
+
     def delete_memoized(self, f, *args, **kwargs):
         """
         Deletes the specified functions caches, based by given parameters.
