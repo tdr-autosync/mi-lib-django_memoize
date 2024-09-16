@@ -282,7 +282,7 @@ class Memoizer(object):
 
         return tuple(new_args), kwargs
 
-    def memoize(self, timeout=DEFAULT_TIMEOUT, make_name=None, unless=None):
+    def memoize(self, timeout=DEFAULT_TIMEOUT, min_time=0, make_name=None, unless=None):
         """
         Use this to cache the result of a function, taking its arguments into
         account in the cache key.
@@ -361,12 +361,15 @@ class Memoizer(object):
                 # if a cache miss occurs, run the function from scratch
                 # and cache the resulting return value
                 if rv == self.default_cache_value:
+                    start_time = time.time()
                     rv = f(*args, **kwargs)
+                    elapsed_time = time.time() - start_time
                     try:
-                        self.set(
-                            cache_key, rv,
-                            timeout=decorated_function.cache_timeout
-                        )
+                        if elapsed_time > min_time:
+                            self.set(
+                                cache_key, rv,
+                                timeout=decorated_function.cache_timeout
+                            )
                     except Exception:
                         if settings.DEBUG:
                             raise
@@ -386,7 +389,7 @@ class Memoizer(object):
 
             return decorated_function
         return memoize
-
+        
     def delete_memoized(self, f, *args, **kwargs):
         """
         Deletes the specified functions caches, based by given parameters.
