@@ -726,3 +726,25 @@ class MemoizeTestCase(SimpleTestCase):
 
         # re-enable logger
         logging.disable(logging.NOTSET)
+
+    def test_27_memoize_with_min_time(self):
+        @self.memoizer.memoize(timeout=10, min_time=0.5)
+        def fast_function():
+            return random.randrange(0, 100000)
+
+        @self.memoizer.memoize(timeout=10, min_time=0.5)
+        def slow_function():
+            time.sleep(0.6)
+            return random.randrange(0, 100000)
+
+        # Test fast function
+        result_fast_1 = fast_function()
+        result_fast_2 = fast_function()
+        assert result_fast_1 != result_fast_2, "Fast function should not cache results"
+
+        # Test slow function
+        result_slow_1 = slow_function()
+        result_slow_2 = slow_function()
+        assert result_slow_1 == result_slow_2, "Slow function should cache results"
+
+    
