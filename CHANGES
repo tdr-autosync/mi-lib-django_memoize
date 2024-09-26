@@ -1,5 +1,8 @@
 Changelog
 
+Version 2.4.0
+`````````````
+- memoize() now accepts an extra parameter min_time. Cache is set only if function run takes more than min_time.
 
 Version 2.3.1
 `````````````
