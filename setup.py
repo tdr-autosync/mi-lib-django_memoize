@@ -13,7 +13,7 @@ from setuptools import setup
 
 setup(
     name="django-memoize",
-    version="2.3.1",
+    version="2.4.0",
     packages=["memoize"],
     include_package_data=True,
     license="BSD License",
