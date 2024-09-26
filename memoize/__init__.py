@@ -283,7 +283,11 @@ class Memoizer(object):
 
         return tuple(new_args), kwargs
 
-    def memoize(self, timeout=DEFAULT_TIMEOUT, make_name=None, unless=None, min_time=0):
+    def memoize(self, 
+            timeout=DEFAULT_TIMEOUT, 
+            make_name=None, 
+            unless=None, 
+            min_time=0):
         """
         Use this to cache the result of a function, taking its arguments into
         account in the cache key.
