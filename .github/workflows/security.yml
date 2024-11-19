@@ -1,0 +1,29 @@
+name: security-check
+
+on:
+  push:
+    branches:
+      - master
+      - sicurezza
+
+jobs:
+  veracode:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Veracode (create zip)
+        run: zip -r src.zip . -x ".git/*" ".github/*" ".env*"
+
+      - name: Veracode Upload and Scan
+        uses: veracode/veracode-uploadandscan-action@0.2.7
+        with:
+          appname: '${{ github.repository }}'
+          version: '${{ github.head_ref || github.ref_name }} - ${{ github.sha }}'
+          filepath: './src.zip'
+          vid: '${{ secrets.AS__VERACODE_API_ID }}'
+          vkey: '${{ secrets.AS__VERACODE_API_KEY }}'
+          scanallnonfataltoplevelmodules: true
