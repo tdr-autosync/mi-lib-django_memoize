@@ -396,7 +396,7 @@ class Memoizer(object):
         return memoize
 
     def delete_memoized(self, f, *args, **kwargs):
-        """
+        r"""
         Deletes the specified functions caches, based by given parameters.
         If parameters are given, only the functions that were memoized with
         them will be erased. Otherwise all versions of the caches will be
